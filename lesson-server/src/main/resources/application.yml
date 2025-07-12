@@ -1,0 +1,101 @@
+server:
+  port: 8088 # 服务端口
+  tomcat:
+    connection-timeout: 300000     # 连接超时5分钟
+    max-http-form-post-size: 2GB   # POST请求大小限制
+    max-swallow-size: 2GB          # 请求体大小限制
+# Spring Boot 主要配置
+spring:
+  profiles:
+    active: dev # 激活的环境
+  main:
+    allow-circular-references: true # 允许循环依赖
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 2GB          # 支持最大2GB文件
+      max-request-size: 2GB        # 请求总大小限制
+      file-size-threshold: 10MB    # 文件大小阈值，超过此值写入磁盘
+      resolve-lazily: false        # 立即解析
+      location: /tmp/upload        # 临时文件存储路径
+      enabled: true                # 启用文件上传
+  # Redis配置
+  redis:
+    host: localhost
+    port: 6379
+    password: 3s675qwe
+    database: 0
+  # 数据源配置（使用 Druid）
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver # 数据库驱动
+      url: jdbc:mysql://localhost:3306/lesson?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      username: root
+      password: 3s675qwe
+      # 连接池优化配置
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+    async:
+      request-timeout: 300000       # 异步请求超时5分钟
+
+# 日志级别配置
+logging:
+  level:
+    com:
+      lesson:
+        mapper: debug
+        service: info
+        controller: info
+
+# MyBatis-plus 配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.lesson.entity
+  configuration:
+    map-underscore-to-camel-case: true # 下划线转驼峰
+
+# =============== Swagger 配置 ===============
+# 访问地址：http://localhost:8088/doc.html   设置为false 则不可用
+swagger:
+  enabled: true
+
+# ================== 自定义业务配置 ==================
+lesson:
+  jwt:
+    secret-key: online # JWT密钥
+    ttl: 7200000 # token有效期
+    token-name: online-token # token名称
+    refresh-ttl: 604800000 # refreshToken有效期，7天（单位毫秒）
+  interceptor:
+    exclude-paths:
+      - /user/login
+      - /user/register
+      - /course/scan/**
+      - /course/category/**
+      - /system/**
+      - /user/refreshToken
+      - /ws/**
+      # Swagger/Knife4j 相关放行
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /swagger-resources/**
+      - /webjars/**
+      - /v2/api-docs
+      - /v2/api-docs/**
+      - /v3/api-docs
+      - /v3/api-docs/**
+      - /doc.html
+
+
+
