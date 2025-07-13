@@ -71,6 +71,16 @@ export const constantRoutes = [
     path: '/course/:id',
     name: 'CourseDetail',
     component: () => import('@/views/course/CourseDetail.vue')
+  },
+  {
+    path: '/course/:courseId/doc/:chapterId',
+    name: 'DocReader',
+    component: () => import('@/views/common/DocReader.vue')
+  },
+  {
+    path: '/video-player/:courseId/:chapterId',
+    name: 'VideoPlayerPage',
+    component: () => import('@/views/common/VideoPlayerPage.vue')
   }
 ]
 

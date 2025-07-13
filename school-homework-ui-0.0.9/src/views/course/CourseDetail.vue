@@ -67,106 +67,86 @@
         </div>
       </div>
     </el-card>
-    <el-card class="chapters-card">
-      <div slot="header" class="chapters-header">
-        <span class="chapters-title">课程章节</span>
-        <span class="chapters-count">共 {{ chapters.length }} 章</span>
-      </div>
-      <div class="chapters-list">
-        <div
-          v-for="chapter in chapters"
-          :key="chapter.chapterId"
-          class="chapter-item"
-          :class="{ 'free': chapter.isFree, 'locked': !chapter.isFree && !hasPurchased }"
-          @click="handleChapterClick(chapter)"
-        >
-          <div class="chapter-info">
-            <div class="chapter-title">{{ chapter.chapterName }}</div>
-            <div class="chapter-meta">
-              <span class="chapter-duration">
-                <i class="el-icon-time"></i>
-                {{ chapter.videoDuration }}
-              </span>
-              <span class="chapter-size">
-                <i class="el-icon-document"></i>
-                {{ formatFileSize(chapter.videoSize) }}
-              </span>
-            </div>
-          </div>
-          <div class="chapter-status">
-            <el-tag v-if="chapter.isFree" type="success" size="small">免费</el-tag>
-            <el-tag v-else-if="!hasPurchased" type="danger" size="small">付费</el-tag>
-            <el-tag v-else type="primary" size="small">可观看</el-tag>
-          </div>
-        </div>
-      </div>
+    <el-card class="chapter-list-card">
+      <div slot="header" class="chapter-header"><span>章节列表</span></div>
+      <el-table :data="chapters" border style="width:100%;" class="chapter-table">
+        <el-table-column prop="chapterId" type="index" label="序号" width="80"/>
+        <el-table-column prop="chapterName" label="章节名称"/>
+        <el-table-column prop="orderNum" label="顺序" width="80"/>
+        <el-table-column prop="isFree" label="是否免费" width="100">
+          <template slot-scope="scope">
+            <el-tag :type="isChapterFree(scope.row) ? 'success' : 'info'">{{ isChapterFree(scope.row) ? '免费' : '付费' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="videoDuration" label="时长" width="120"/>
+        <el-table-column prop="videoSize" label="大小(MB)" width="100">
+          <template slot-scope="scope">{{ (scope.row.videoSize/1024/1024).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="200">
+          <template slot-scope="scope">
+            <!-- 视频章节 -->
+            <el-button
+              v-if="isVideoChapter(scope.row) && scope.row.videoUrl && scope.row.videoUrl !== 'false' && scope.row.videoUrl !== ''"
+              size="mini"
+              type="primary"
+              @click="playVideo(scope.row)"
+              class="action-btn"
+            >
+              观看视频
+            </el-button>
+            <!-- 文档章节：显示"阅读文档"和"下载文档" -->
+            <template v-else-if="isDocumentChapter(scope.row)">
+              <el-button
+                size="mini"
+                type="success"
+                @click="goToDocReader(scope.row)"
+                class="action-btn"
+              >
+                阅读文档
+              </el-button>
+              <el-button
+                size="mini"
+                type="primary"
+                @click="downloadDocument(scope.row)"
+                class="action-btn"
+                style="margin-left: 6px;"
+              >
+                下载文档
+              </el-button>
+            </template>
+            <!-- 无内容 -->
+            <el-button
+              v-else
+              size="mini"
+              type="info"
+              disabled
+              class="action-btn"
+            >
+              无内容
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-card>
   </div>
 </template>
 <script>
 import { mapState } from 'vuex'
+import { getCourseDetail } from '@/api/course'
+import {favoriteCourse, favoriteCourseStatus} from '@/api/favorite'
+import { addToCart, checkPurchased } from '@/api/cart'
+import { reportChapterProgress, getChaptersList, getPurchasedCourseDetail, getDocDownloadUrl } from '@/api/chapters'
+import { getVideoPlayUrl } from '@/api/video'
+import getters from "@/store/getters";
+import 'github-markdown-css/github-markdown.css'
 export default {
   name: 'CourseDetail',
   data() {
     return {
-      course: {
-        courseId: 1,
-        courseName: 'Vue.js入门到精通',
-        courseDesc: '从零开始学习Vue.js框架，掌握前端开发技能。本课程涵盖Vue.js基础语法、组件开发、路由管理、状态管理等核心知识点，通过实战项目帮助学员快速掌握Vue.js开发技能',
-        categoryName: '前端开发',
-        teacherName: '张老师',
-        studentCount: 1250,
-        score: 4.8,
-        price: 99.00,
-        originalPrice: 199.00,
-        courseTags: 'Vue,前端,JavaScript,组件',
-        auditStatus: 'APPROVED',
-        coverImage: 'https://picsum.photos/300/200?random=1'
-      },
-      chapters: [
-        {
-          chapterId: 1,
-          chapterName: '第一章：Vue.js基础入门',
-          orderNum: 1,
-          isFree: true,
-          videoDuration: '45:30',
-          videoSize: 15728640,
-          videoUrl: 'https://picsum.photos/300/200?random=1',
-          chapterType: 'VIDEO'
-        },
-        {
-          chapterId: 2,
-          chapterName: '第二章：Vue组件开发',
-          orderNum: 2,
-          isFree: false,
-          videoDuration: '52:15',
-          videoSize: 20971520,
-          videoUrl: 'https://picsum.photos/300/200?random=2',
-          chapterType: 'VIDEO'
-        },
-        {
-          chapterId: 3,
-          chapterName: '第三章：Vue路由管理',
-          orderNum: 3,
-          isFree: false,
-          videoDuration: '38:45',
-          videoSize: 15728640,
-          videoUrl: 'https://picsum.photos/300/200?random=3',
-          chapterType: 'VIDEO'
-        },
-        {
-          chapterId: 4,
-          chapterName: '第四章：Vuex状态管理',
-          orderNum: 4,
-          isFree: false,
-          videoDuration: '41:20',
-          videoSize: 18350080,
-          videoUrl: 'https://picsum.photos/300/200?random=4',
-          chapterType: 'VIDEO'
-        }
-      ],
+      course: {},
+      chapters: [],
+      favoriteStatus: false,
       hasPurchased: false,
-      isFavorited: false
     }
   },
   computed: {
@@ -174,83 +154,330 @@ export default {
       userType: state => state.user.userType,
       userId: state => state.user.id
     }),
+    isFavorited() {
+      return this.favoriteStatus;
+    },
     canBuy() {
-      return this.userType === 'STUDENT' && this.course.auditStatus === 'APPROVED'
+      if (this.userType !== 'STUDENT') return false
+      if (this.userType === 'ADMIN') return false
+      return !this.hasPurchased
     },
     buyButtonText() {
-      if (this.hasPurchased) return '已购买'
-      return `购买课程 ￥${this.course.price}`
-    }
+      if (this.hasPurchased) return '已购买';
+      return '立即购买';
+    },
   },
-  mounted() {
-    console.log('课程详情页面使用假数据')
-    this.loadCourseDetail()
+  created() {
+    this.loadCourse()
   },
   methods: {
     goHome() {
       this.$router.push('/')
     },
-    auditStatusText(status) {
-      switch (status) {
-        case 'APPROVED': return '已通过'
-        case 'PENDING': return '待审核'
-        case 'REJECTED': return '已拒绝'
-        default: return '未知'
+    async loadCourse() {
+      const id = this.$route.params.id
+
+      // 先检查用户是否已购买该课程
+      this.hasPurchased = false // 默认未购买
+      if (this.userType === 'STUDENT' && this.userId) {
+        try {
+          const purchaseRes = await checkPurchased(id)
+          const res = purchaseRes.data // 统一解包
+          // 新逻辑：data: true 表示已购买，data: false 表示未购买
+          this.hasPurchased = res && res.code === 200 && res.data === true
+        } catch (error) {
+          console.warn('检查购买状态失败:', error)
+          this.hasPurchased = false
+        }
+      }
+
+      // 根据购买状态选择API
+      if (this.hasPurchased) {
+        // 已购买，获取完整详情（包含章节内容）
+        try {
+          const res = await getPurchasedCourseDetail(id)
+          if (res.code === 200) {
+            this.course = res.data
+            this.chapters = Array.isArray(res.data.chapteList) ? res.data.chapteList : []
+          } else {
+            await this.loadCourseFromScan()
+          }
+        } catch (error) {
+          await this.loadCourseFromScan()
+        }
+      } else {
+        await this.loadCourseFromScan()
+      }
+
+      this.checkFavorite()
+    },
+
+    async loadCourseFromScan() {
+      const id = this.$route.params.id
+      const res = await getCourseDetail(id)
+      // 兼容多层data结构
+      const data = res && res.data && res.data.data ? res.data.data : (res.data || res)
+      this.course = data
+      const chaptersRes = await getChaptersList(id)
+      if (chaptersRes.data && chaptersRes.data.code === 200 && Array.isArray(chaptersRes.data.data)) {
+        this.chapters = chaptersRes.data.data
+      } else {
+        this.chapters = []
+      }
+      // 只有在未购买时才赋值 false，避免覆盖已购买状态
+      if (!this.hasPurchased) {
+        this.hasPurchased = false
       }
     },
-    formatFileSize(bytes) {
-      if (!bytes) return '0 B'
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    async checkFavorite() {
+      const courseId = this.course.courseId;
+      const userId = this.userId;
+
+      // 参数校验
+      if (!courseId || !userId) {
+        return;
+      }
+
+      try {
+        const response = await favoriteCourseStatus(courseId, userId);
+        const res = response.data // 统一解包
+        // 根据后端返回的数据结构判断收藏状态
+        if (res && res.code === 200) {
+          // 后端返回: {"code":200,"msg":null,"data":"已收藏"}
+          const isFavorited = res.data === "已收藏";
+          this.favoriteStatus = isFavorited;
+        } else {
+          this.favoriteStatus = false;
+        }
+      } catch (error) {
+        this.favoriteStatus = false;
+      }
     },
-    loadCourseDetail() {
-      setTimeout(() => {
-        this.$message.success('课程详情加载成功（假数据）')
-      }, 300)
+    async toggleFavorite() {
+      try {
+        const courseId = this.course.courseId
+
+        const response = await favoriteCourse(courseId)
+        const res = response.data // 统一解包
+        if (res && res.code === 200) {
+          // 操作成功后重新检查收藏状态
+          await this.checkFavorite()
+
+          // 根据当前状态显示消息
+          const message = this.favoriteStatus ? '收藏成功' : '取消收藏成功';
+          this.$message.success(message)
+        } else {
+          this.$message.error(res?.msg || '操作失败')
+        }
+      } catch (error) {
+        this.$message.error('操作失败，请稍后重试')
+      }
     },
-    buyCourse() {
-      if (this.hasPurchased) {
-        this.$message.info('您已购买此课程')
+    isVideoChapter(chapter) {
+      // 根据文件URL或内容类型判断是否为视频章节
+      if (chapter.contentType) {
+        return chapter.contentType === 'VIDEO'
+      }
+      // 如果没有contentType字段，根据文件URL判断
+      if (chapter.videoUrl) {
+        const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm']
+        return videoExtensions.some(ext => chapter.videoUrl.toLowerCase().includes(ext))
+      }
+      return false
+    },
+    isDocumentChapter(chapter) {
+      // 根据文件URL或内容类型判断是否为文档章节
+      if (chapter.contentType) {
+        return chapter.contentType === 'DOCUMENT'
+      }
+      // 如果没有contentType字段，根据文件URL判断
+      if (chapter.videoUrl) {
+        const documentExtensions = ['.pdf', '.doc', '.docx', '.txt', '.ppt', '.pptx']
+        return documentExtensions.some(ext => chapter.videoUrl.toLowerCase().includes(ext))
+      }
+      return false
+    },
+    isChapterFree(chapter) {
+      // 检查章节是否免费，处理字符串和数字类型
+      if (chapter.isFree === true || chapter.isFree === 1 || chapter.isFree === '1') {
+        return true
+      }
+      return false
+    },
+    buyCourse: async function() {
+      if (this.userType === 'TEACHER' && !this.isCourseOwner()) {
+        this.$message.warning('暂不支持老师购买课程')
         return
       }
-      this.$confirm(`确定要购买课程"${this.course.courseName}"吗？价格：￥${this.course.price}`, '确认购买', {
-        confirmButtonText: '确定购买',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        this.hasPurchased = true
-        this.$message.success('购买成功（假数据）')
-      }).catch(() => {
-        this.$message.info('已取消购买')
+      if (this.hasPurchased) {
+        this.$message.info('您已购买过该课程')
+        return
+      }
+      try {
+        const response = await addToCart({ courseId: this.course.courseId })
+        const res = response.data // 统一解包
+        if (res.code === 200) {
+          this.$message.success('已加入购物车')
+          this.$router.push('/cart')
+        } else {
+          this.$message.error(res.msg || '加入购物车失败')
+        }
+      } catch (e) {
+        this.$message.error('加入购物车失败')
+      }
+    },
+    async playVideo(chapter) {
+      if (!chapter.chapterId) {
+        this.$message.error('章节ID无效');
+        return;
+      }
+      const userId = this.userId;
+      try {
+        const res = await getVideoPlayUrl({ chapterId: chapter.chapterId, userId });
+        const result = res.data && res.data.code !== undefined ? res.data : res;
+        if (result.code === 200 && result.data) {
+          this.$router.push({
+            name: 'VideoPlayerPage',
+            params: {
+              courseId: this.course.courseId,
+              chapterId: chapter.chapterId,
+              videoUrl: result.data,
+              chapterName: chapter.chapterName
+            }
+          })
+        } else if (result.code === 403) {
+          if (this.userType === 'TEACHER' && !this.isCourseOwner()) {
+            this.$message.warning('暂不支持老师购买课程')
+            return
+          }
+          this.$confirm('您未购买该课程，是否立即购买？', '无权限观看', {
+            confirmButtonText: '去购买',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(async () => {
+            const response = await addToCart({ courseId: this.course.courseId });
+            const res = response.data // 统一解包
+            if (res.code === 200) {
+              this.$message.success('已加入购物车');
+              this.$router.push('/cart');
+            } else {
+              this.$message.error(res.msg || '加入购物车失败');
+            }
+          });
+        } else {
+          this.$message.error(result.msg || '获取播放地址失败');
+        }
+      } catch (e) {
+        this.$message.error('获取播放地址失败');
+      }
+    },
+    async downloadDocument(chapter) {
+      if (!this.userId) {
+        this.$confirm('请先登录后下载文档', '提示', { type: 'warning' }).then(() => {
+          this.$router.push('/login')
+        })
+        return
+      }
+      if (chapter.chapterId) {
+        try {
+          const response = await getDocDownloadUrl(chapter.chapterId, this.userId)
+          const res = response.data // 统一解包
+          if (res.code === 200 && res.data) {
+            window.open(res.data, '_blank');
+            this.$message.success('开始下载文档（5分钟内有效）');
+            // 只有学生才上报进度
+            if (this.userType === 'STUDENT') {
+              try {
+                await reportChapterProgress({
+                  courseId: this.course.courseId,
+                  chapterId: chapter.chapterId
+                })
+                this.$message.success('已记录下载进度')
+              } catch {
+                this.$message.warning('下载进度上报失败')
+              }
+            }
+          } else if (res.code === 403) {
+            if (this.userType === 'TEACHER' && !this.isCourseOwner()) {
+              this.$message.warning('暂不支持老师购买课程')
+              return
+            }
+            this.$confirm('您未购买该课程，是否立即购买？', '无权限下载', {
+              confirmButtonText: '去购买',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              this.buyCourse()
+            })
+          } else {
+            this.$message.error(res.msg || '获取下载链接失败')
+          }
+        } catch (e) {
+          this.$message.error('获取下载链接失败')
+        }
+      } else {
+        this.$message.error('文档地址无效')
+      }
+    },
+    goToDocReader(chapter) {
+      // 跳转到 DocReader 全屏页面，传递 courseId 和 chapterId
+      this.$router.push({
+        name: 'DocReader',
+        params: {
+          courseId: this.course.courseId || this.$route.params.id,
+          chapterId: chapter.chapterId
+        }
       })
     },
-    toggleFavorite() {
-      this.isFavorited = !this.isFavorited
-      this.$message.success(this.isFavorited ? '收藏成功（假数据）' : '取消收藏成功（假数据）')
+    isCourseOwner() {
+      // 只判断teacherId
+      return this.userType === 'TEACHER' && this.course && this.course.teacherId == this.userId
     },
-    handleChapterClick(chapter) {
-      if (!chapter.isFree && !this.hasPurchased) {
-        this.$message.warning('请先购买课程才能观看此章节')
-        return
+    auditStatusText(status) {
+      switch (status) {
+        case 'PENDING': return '待审核';
+        case 'APPROVED': return '已通过';
+        case 'REJECTED': return '已拒绝';
+        default: return '未知';
       }
-      if (chapter.chapterType === 'VIDEO') {
-        this.$router.push(`/video/${chapter.chapterId}`)
+    },
+    async handleAddToCartFromDocReader() {
+      const response = await addToCart({ courseId: this.course.courseId });
+      const res = response.data // 统一解包
+      if (res.code === 200) {
+        this.$message.success('已加入购物车');
+        this.$router.push('/cart');
       } else {
-        this.$router.push(`/doc/${chapter.chapterId}`)
+        this.$message.error(res.msg || '加入购物车失败');
       }
     }
+  },
+  mounted() {
+    window.addEventListener('doc-finished-debug', () => {
+    })
+    window.addEventListener('message', async (event) => {
+      if (event.data && event.data.type === 'videoEnded') {
+        try {
+          await this.$axios.post('/student/learn/complete', {
+            courseId: event.data.courseId,
+            chapterId: event.data.chapterId
+          })
+          this.$message.success('视频学习进度已记录')
+        } catch {
+          this.$message.warning('视频进度上报失败')
+        }
+      }
+    });
   }
 }
 </script>
 <style scoped>
 .course-detail-page {
-  padding: 30px;
+  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffe4ec 0%, #ffd6e6 100%);
   max-width: 1200px;
   margin: 0 auto;
-  background: #f8f9fa;
-  min-height: 100vh;
 }
 .page-header {
   margin-bottom: 20px;
@@ -259,6 +486,10 @@ export default {
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #f0c1d6cc;
 }
 .back-btn {
   background: #ffb6d5 !important;
@@ -279,36 +510,127 @@ export default {
 }
 .course-info-card {
   margin-bottom: 20px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #f0c1d6cc;
+  border: none;
+  overflow: hidden;
 }
 .course-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  justify-content: space-between;
 }
 .course-title-section {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1;
 }
 .course-title {
-  font-size: 1.8rem;
-  color: #ff5c8a;
+  font-size: 22px;
   font-weight: bold;
+  color: #ff5c8a;
 }
 .audit-tag {
+  margin-left: 16px;
   border-radius: 8px;
   font-weight: bold;
 }
 .course-actions {
   display: flex;
   gap: 12px;
+}
+.course-meta-beauty {
+  background: linear-gradient(135deg, #fff0f6 60%, #ffd6e6 100%);
+  border-radius: 18px;
+  box-shadow: 0 2px 12px #ffd6e6cc;
+  padding: 28px 32px 18px 32px;
+  margin: 24px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.meta-group {
+  display: flex;
   flex-wrap: wrap;
+  gap: 24px 40px;
+}
+.meta-item {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  color: #ff5c8a;
+  font-weight: bold;
+  min-width: 180px;
+  margin-bottom: 6px;
+}
+.meta-icon {
+  color: #ffb6d5;
+  font-size: 20px;
+  margin-right: 8px;
+}
+.price {
+  color: #ff5c8a;
+  font-size: 18px;
+  font-weight: bold;
+  margin-left: 2px;
+}
+.original-price {
+  color: #bbb;
+  text-decoration: line-through;
+  font-size: 14px;
+  margin-left: 6px;
+}
+.meta-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tag-pink {
+  background: #fff0f6 !important;
+  color: #ff5c8a !important;
+  border: 1.5px solid #ffb6d5 !important;
+  border-radius: 10px !important;
+  font-weight: bold;
+}
+.meta-desc {
+  display: flex;
+  align-items: flex-start;
+  color: #888;
+  font-size: 15px;
+  margin-top: 8px;
+  gap: 8px;
+}
+.meta-desc .meta-icon {
+  margin-top: 2px;
+}
+.chapter-list-card {
+  margin-top: 30px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #f0c1d6cc;
+  border: none;
+  overflow: hidden;
+}
+.chapter-header {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff5c8a;
+}
+.chapter-table ::v-deep .el-table__header-wrapper {
+  background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
+}
+.chapter-table ::v-deep .el-table__header th {
+  background: transparent;
+  color: #ff5c8a;
+  font-weight: bold;
+  border-bottom: 2px solid #ffb6d5;
+}
+.chapter-table ::v-deep .el-table__body tr:hover > td {
+  background: #fff5f8;
+}
+.chapter-table ::v-deep .el-table__body td {
+  border-bottom: 1px solid #ffe4ec;
 }
 .buy-btn {
   background: #ffb6d5 !important;
@@ -322,177 +644,100 @@ export default {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
-.buy-btn:disabled {
-  background: #c0c4cc !important;
-  border-color: #c0c4cc !important;
-  color: #fff !important;
-}
 .favorite-btn {
+  background: #ffb6d5 !important;
+  border-color: #ffb6d5 !important;
+  color: #fff !important;
+  font-weight: bold;
   border-radius: 12px;
   padding: 10px 20px;
+}
+.favorite-btn:hover {
+  background: #ff5c8a !important;
+  border-color: #ff5c8a !important;
+}
+.action-btn {
+  border-radius: 8px;
   font-weight: bold;
 }
-.course-meta-beauty {
-  padding: 20px 0;
+/* 操作按钮样式 */
+::v-deep .el-button--mini {
+  padding: 5px 10px;
+  font-size: 12px;
 }
-.meta-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+/* 让primary按钮变粉色，与首页一致 */
+::v-deep .el-button--primary {
+  background: #ffb6d5 !important;
+  border-color: #ffb6d5 !important;
 }
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #ffb6d5;
+::v-deep .el-button--primary:hover,
+::v-deep .el-button--primary:focus {
+  background: #ff5c8a !important;
+  border-color: #ff5c8a !important;
 }
-.meta-icon {
-  color: #ffb6d5;
-  font-size: 1.2rem;
+/* 成功按钮样式 */
+::v-deep .el-button--success {
+  background: #67c23a !important;
+  border-color: #67c23a !important;
 }
-.price {
-  color: #e74c3c;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-.original-price {
-  color: #999;
-  text-decoration: line-through;
-  font-size: 0.9rem;
-}
-.meta-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #ffb6d5;
-}
-.tag-pink {
-  background: #ffb6d5;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  margin-right: 8px;
-}
-.meta-desc {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #ffb6d5;
-  line-height: 1.6;
-}
-.chapters-card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-.chapters-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.chapters-title {
-  font-size: 1.3rem;
-  color: #333;
-  font-weight: bold;
-}
-.chapters-count {
-  color: #666;
-  font-size: 0.9rem;
-}
-.chapters-list {
-  padding: 20px 0;
-}
-.chapter-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  margin-bottom: 12px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border-left: 4px solid #ffb6d5;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.chapter-item:hover {
-  background: #fff5f8;
-  transform: translateX(4px);
-}
-.chapter-item.free {
-  border-left-color: #67c23a;
-}
-.chapter-item.locked {
-  border-left-color: #f56c6c;
-  opacity: 0.7;
-}
-.chapter-info {
-  flex: 1;
-}
-.chapter-title {
-  font-size: 1.1rem;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-.chapter-meta {
-  display: flex;
-  gap: 16px;
-  font-size: 0.9rem;
-  color: #666;
-}
-.chapter-duration, .chapter-size {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.chapter-status {
-  flex-shrink: 0;
+::v-deep .el-button--success:hover,
+::v-deep .el-button--success:focus {
+  background: #85ce61 !important;
+  border-color: #85ce61 !important;
 }
 @media (max-width: 768px) {
   .course-detail-page {
-    padding: 20px;
+    padding: 8px;
+  }
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  .back-btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .course-info-card, .chapter-list-card {
+    border-radius: 10px;
+    padding: 8px;
   }
   .course-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 15px;
   }
   .course-title {
-    font-size: 1.5rem;
+    font-size: 18px;
+  }
+  .chapter-header {
+    font-size: 16px;
   }
   .course-actions {
+    flex-direction: column;
     width: 100%;
-    justify-content: center;
+  }
+  .buy-btn, .favorite-btn {
+    width: 100%;
+  }
+  .chapter-table ::v-deep .el-table {
+    font-size: 12px;
+  }
+  .chapter-table ::v-deep .el-table th,
+  .chapter-table ::v-deep .el-table td {
+    padding: 8px 4px;
+  }
+  .course-meta-beauty {
+    padding: 12px 8px 10px 8px;
+    border-radius: 10px;
+    gap: 10px;
   }
   .meta-group {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .meta-item {
-    padding: 10px;
-  }
-  .chapter-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .chapter-meta {
     flex-direction: column;
     gap: 8px;
   }
-  .chapter-status {
-    align-self: flex-end;
+  .meta-item {
+    min-width: 120px;
+    font-size: 14px;
   }
 }
 </style>
