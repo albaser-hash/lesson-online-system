@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lesson.mapper.OrderMapper">
+
+    <!-- ResultMap for OrderVO -->
+    <resultMap id="OrderVOResultMap" type="com.lesson.vo.OrderVO">
+        <id property="orderId" column="order_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="orderAmount" column="order_amount"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="payTime" column="pay_time"/>
+    </resultMap>
+
+    <!-- 查询用户的订单列表（包含课程详情） -->
+    <select id="selectUserOrders" resultMap="OrderVOResultMap">
+        SELECT
+            o.order_id,
+            o.user_id,
+            o.course_id,
+            c.course_name,
+            c.cover_image,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as teacher_name,
+            COALESCE(cc.category_name, '未分类') as category_name,
+            o.payment_method,
+            o.order_amount,
+            o.order_status,
+            o.create_time,
+            o.pay_time
+        FROM orders o
+        LEFT JOIN course c ON o.course_id = c.course_id
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories cc ON c.category_id = cc.category_id
+        WHERE o.user_id = #{userId}
+        ORDER BY o.create_time DESC
+    </select>
+
+    <!-- 查询单个订单详情 -->
+    <select id="selectOrderDetail" resultMap="OrderVOResultMap">
+        SELECT
+            o.order_id,
+            o.user_id,
+            o.course_id,
+            c.course_name,
+            c.cover_image,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as teacher_name,
+            COALESCE(cc.category_name, '未分类') as category_name,
+            o.payment_method,
+            o.order_amount,
+            o.order_status,
+            o.create_time,
+            o.pay_time
+        FROM orders o
+        LEFT JOIN course c ON o.course_id = c.course_id
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories cc ON c.category_id = cc.category_id
+        WHERE o.order_id = #{orderId}
+    </select>
+
+    <!-- 检查用户是否已购买课程 -->
+    <select id="selectByUserIdAndCourseId" resultType="com.lesson.entity.Order">
+        SELECT * FROM orders 
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND order_status = 'PAID'
+    </select>
+
+</mapper> 

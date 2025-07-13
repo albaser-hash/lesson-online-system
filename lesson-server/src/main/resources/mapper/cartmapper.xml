@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lesson.mapper.CartMapper">
+
+    <!-- ResultMap for CartItemVO -->
+    <resultMap id="CartItemVOResultMap" type="com.lesson.vo.CartItemVO">
+        <id property="cartItemId" column="cart_item_id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="courseDesc" column="course_desc"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <!-- 查询用户的购物车列表（包含课程详情） -->
+    <select id="selectUserCartItems" resultMap="CartItemVOResultMap">
+        SELECT
+            ci.cart_item_id,
+            ci.course_id,
+            c.course_name,
+            c.course_desc,
+            c.cover_image,
+            c.price,
+            c.original_price,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as teacher_name,
+            COALESCE(cc.category_name, '未分类') as category_name,
+            ci.create_time
+        FROM cart_items ci
+        LEFT JOIN course c ON ci.course_id = c.course_id
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories cc ON c.category_id = cc.category_id
+        WHERE ci.user_id = #{userId}
+        ORDER BY ci.create_time DESC
+    </select>
+
+    <!-- 检查课程是否已在购物车中 -->
+    <select id="selectByUserIdAndCourseId" resultType="com.lesson.entity.CartItem">
+        SELECT * FROM cart_items 
+        WHERE user_id = #{userId} AND course_id = #{courseId}
+    </select>
+
+</mapper> 
