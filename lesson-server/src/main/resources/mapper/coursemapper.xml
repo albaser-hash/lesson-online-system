@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lesson.mapper.CourseMapper">
+
+    <!-- ResultMap for ScanCourseVO -->
+    <resultMap id="ScanCourseResultMap" type="com.lesson.vo.ScanCourseVO">
+        <id property="courseId" column="course_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="courseDesc" column="course_desc"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="teacherId" column="teacher_id"/>
+        <result property="teacherName" column="user_name"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="studentCount" column="student_count"/>
+        <result property="score" column="score"/>
+        <result property="courseTags" column="course_tags"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="auditMessage" column="audit_message"/>
+        <result property="createTime" column="create_time"/>
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+
+    <!-- 查询审核通过的课程列表，包含 course 全部字段 + 教师姓名 + 动态学生数 -->
+    <select id="selectCourseListWithSpecificFields" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            a.category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.audit_status = 'APPROVED'
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.score DESC, c.create_time DESC
+    </select>
+
+    <!-- 查询课程详细信息 -->
+    <select id="selectCourseById" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            a.category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.course_id = #{id}
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+    </select>
+
+    <!-- 查询章节数量 -->
+    <select id="getChapterNum" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM chapter WHERE course_id = #{courseId}
+    </select>
+
+    <select id="selectCourseByIds" resultMap="ScanCourseResultMap">
+        SELECT
+        c.course_id,
+        c.course_name,
+        c.course_desc,
+        c.category_id,
+        c.teacher_id,
+        c.price,
+        c.original_price,
+        c.cover_image,
+        COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+        c.score,
+        c.course_tags,
+        c.audit_status,
+        c.audit_message,
+        c.create_time,
+        COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+        COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories a ON a.category_id = c.category_id
+        LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        <where>
+            c.course_id IN
+            <foreach collection="courseIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </where>
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+        c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+        c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.score DESC, c.create_time DESC
+    </select>
+
+    <!-- 查询教师课程列表 -->
+    <select id="selectTeacherCourses" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.teacher_id = #{teacherId}
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.score DESC, c.create_time DESC
+    </select>
+
+    <!-- 分页查询课程列表（带教师名和分类名） -->
+    <select id="selectCoursePageWithDetails" resultMap="ScanCourseResultMap">
+        SELECT
+        c.course_id,
+        c.course_name,
+        c.course_desc,
+        c.category_id,
+        c.teacher_id,
+        c.price,
+        c.original_price,
+        c.cover_image,
+        COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+        c.score,
+        c.course_tags,
+        c.audit_status,
+        c.audit_message,
+        c.create_time,
+        COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+        COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories a ON a.category_id = c.category_id
+        LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.audit_status = 'APPROVED'
+        <if test="keyword != null and keyword != ''">
+            AND c.course_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="categoryId != null">
+            AND c.category_id = #{categoryId}
+        </if>
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id, 
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags, 
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.score DESC, c.create_time DESC
+    </select>
+
+    <!-- ResultMap for MyCourseVO -->
+    <resultMap id="MyCourseResultMap" type="com.lesson.vo.MyCourseVO">
+        <id property="courseId" column="course_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="courseDesc" column="course_desc"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="progress" column="progress"/>
+        <result property="completedChapters" column="completed_chapters"/>
+        <result property="totalChapters" column="total_chapters"/>
+        <result property="studyTime" column="study_time"/>
+        <result property="lastStudyTime" column="last_study_time"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <!-- 查询我的课程（分页） -->
+    <select id="selectMyCoursesPage" resultMap="MyCourseResultMap">
+        SELECT
+        c.course_id,
+        c.course_name,
+        c.course_desc,
+        COALESCE(cc.category_name, '未分类') as category_name,
+        COALESCE(NULLIF(u.name, ''), u.user_name) as teacher_name,
+        c.cover_image,
+        COALESCE(progress_info.progress, 0) as progress,
+        COALESCE(progress_info.completed_chapters, 0) as completed_chapters,
+        COALESCE(chapter_info.total_chapters, 0) as total_chapters,
+        COALESCE(progress_info.study_time, 0) as study_time,
+        progress_info.last_study_time,
+        CASE 
+            WHEN COALESCE(progress_info.progress, 0) >= 100 THEN 'completed'
+            ELSE 'learning'
+        END as status
+        FROM course c
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories cc ON c.category_id = cc.category_id
+        LEFT JOIN (
+            SELECT 
+                cc.course_id,
+                COUNT(*) as total_chapters
+            FROM course_chapters cc
+            GROUP BY cc.course_id
+        ) chapter_info ON c.course_id = chapter_info.course_id
+        LEFT JOIN (
+            SELECT 
+                cc.course_id,
+                COUNT(CASE WHEN lp.status = 1 THEN 1 END) as completed_chapters,
+                ROUND(COUNT(CASE WHEN lp.status = 1 THEN 1 END) * 100.0 / COUNT(*), 0) as progress,
+                SUM(CASE WHEN lp.status = 1 THEN TIME_TO_SEC(cc.video_duration)/60 ELSE 0 END) as study_time,
+                MAX(lp.last_watch_time) as last_study_time
+            FROM course_chapters cc
+            LEFT JOIN learning_progress lp ON cc.chapter_id = lp.chapter_id AND lp.user_id = #{userId}
+            GROUP BY cc.course_id
+        ) progress_info ON c.course_id = progress_info.course_id
+        WHERE c.course_id IN
+        <foreach collection="courseIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY progress_info.last_study_time IS NULL, progress_info.last_study_time DESC, c.create_time DESC
+    </select>
+
+    <!-- 查询我的课程（不分页） -->
+    <select id="selectMyCourses" resultMap="MyCourseResultMap">
+        SELECT
+        c.course_id,
+        c.course_name,
+        c.course_desc,
+        COALESCE(cc.category_name, '未分类') as category_name,
+        COALESCE(NULLIF(u.name, ''), u.user_name) as teacher_name,
+        c.cover_image,
+        COALESCE(progress_info.progress, 0) as progress,
+        COALESCE(progress_info.completed_chapters, 0) as completed_chapters,
+        COALESCE(chapter_info.total_chapters, 0) as total_chapters,
+        COALESCE(progress_info.study_time, 0) as study_time,
+        progress_info.last_study_time,
+        CASE 
+            WHEN COALESCE(progress_info.progress, 0) >= 100 THEN 'completed'
+            ELSE 'learning'
+        END as status
+        FROM course c
+        LEFT JOIN user u ON c.teacher_id = u.user_id
+        LEFT JOIN course_categories cc ON c.category_id = cc.category_id
+        LEFT JOIN (
+            SELECT 
+                cc.course_id,
+                COUNT(*) as total_chapters
+            FROM course_chapters cc
+            GROUP BY cc.course_id
+        ) chapter_info ON c.course_id = chapter_info.course_id
+        LEFT JOIN (
+            SELECT 
+                cc.course_id,
+                COUNT(CASE WHEN lp.status = 1 THEN 1 END) as completed_chapters,
+                ROUND(COUNT(CASE WHEN lp.status = 1 THEN 1 END) * 100.0 / COUNT(*), 0) as progress,
+                SUM(CASE WHEN lp.status = 1 THEN TIME_TO_SEC(cc.video_duration)/60 ELSE 0 END) as study_time,
+                MAX(lp.last_watch_time) as last_study_time
+            FROM course_chapters cc
+            LEFT JOIN learning_progress lp ON cc.chapter_id = lp.chapter_id AND lp.user_id = #{userId}
+            GROUP BY cc.course_id
+        ) progress_info ON c.course_id = progress_info.course_id
+        WHERE c.course_id IN
+        <foreach collection="courseIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY progress_info.last_study_time IS NULL, progress_info.last_study_time DESC, c.create_time DESC
+    </select>
+
+    <!-- 测试SQL - 简单的课程查询 -->
+    <select id="testSelectCourses" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM course WHERE course_id IN
+        <foreach collection="courseIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 查询待审核课程列表 -->
+    <select id="selectPendingCourses" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.audit_status IN ('PENDING', 'REJECTED')
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 查询所有课程（用于审核页面） -->
+    <select id="selectAllCoursesForAudit" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 查询所有课程（用于审核页面）- 分页版本 -->
+    <select id="selectAllCoursesForAuditWithPage" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 根据审核状态查询课程 -->
+    <select id="selectCoursesByStatus" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.audit_status = #{status}
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 根据审核状态查询课程 - 分页版本 -->
+    <select id="selectCoursesByStatusWithPage" resultMap="ScanCourseResultMap">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.audit_status = #{status}
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 统计某状态的课程数量 -->
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM course WHERE audit_status = #{status}
+    </select>
+    <select id="selectTeacherTestCourses" resultType="com.lesson.vo.ScanCourseVO">
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.course_desc,
+            c.category_id,
+            c.teacher_id,
+            c.price,
+            c.original_price,
+            c.cover_image,
+            COALESCE(COUNT(DISTINCT o.user_id), 0) as student_count,
+            c.score,
+            c.course_tags,
+            c.audit_status,
+            c.audit_message,
+            c.create_time,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as user_name,
+            COALESCE(a.category_name, '未分类') as category_name
+        FROM course c
+                 LEFT JOIN user u ON c.teacher_id = u.user_id
+                 LEFT JOIN course_categories a ON a.category_id = c.category_id
+                 LEFT JOIN orders o ON c.course_id = o.course_id AND o.order_status = 'PAID'
+        WHERE c.teacher_id = #{teacherId}
+        GROUP BY c.course_id, c.course_name, c.course_desc, c.category_id, c.teacher_id,
+                 c.price, c.original_price, c.cover_image, c.score, c.course_tags,
+                 c.audit_status, c.audit_message, c.create_time, COALESCE(NULLIF(u.name, ''), u.user_name), a.category_name
+        HAVING COUNT(o.course_id) > 0
+        ORDER BY c.score DESC, c.create_time DESC
+    </select>
+
+</mapper>
