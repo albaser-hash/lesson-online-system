@@ -246,45 +246,22 @@
 <script>
 import { mapState } from 'vuex'
 import request from '@/utils/request'
+import { uploadImage } from '@/api/createCourse'
 
-// 假数据
-const mockUserData = {
-  userName: 'demo_user',
-  name: '张三',
-  avatar: 'https://via.placeholder.com/150x150/ffb6d5/ffffff?text=头像',
-  email: 'zhangsan@example.com',
-  phone: '13800138000',
-  userType: 'STUDENT',
-  sex: 1,
-  bio: '热爱学习的前端开发者，专注于Vue.js和JavaScript技术栈。'
-}
-
-// 模拟API函数
+// 直接在组件中定义API函数
 const updateUser = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // 模拟更新成功
-      Object.assign(mockUserData, data)
-      resolve({
-        data: {
-          code: 200,
-          msg: '个人资料修改成功'
-        }
-      })
-    }, 1000)
+  return request({
+    url: '/user/update',
+    method: 'put',
+    data
   })
 }
 
 const updateUserPassword = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: {
-          code: 200,
-          msg: '密码修改成功'
-        }
-      })
-    }, 1000)
+  return request({
+    url: '/user/update/password',
+    method: 'put',
+    data
   })
 }
 
@@ -354,31 +331,16 @@ export default {
     }
   },
   computed: {
-    // 使用假数据
-    userName() {
-      return mockUserData.userName
-    },
-    name() {
-      return mockUserData.name
-    },
-    avatar() {
-      return mockUserData.avatar
-    },
-    email() {
-      return mockUserData.email
-    },
-    phone() {
-      return mockUserData.phone
-    },
-    userType() {
-      return mockUserData.userType
-    },
-    sex() {
-      return mockUserData.sex
-    },
-    bio() {
-      return mockUserData.bio
-    },
+    ...mapState({
+      userName: state => state.user.userName,
+      name: state => state.user.name,
+      avatar: state => state.user.avatar,
+      email: state => state.user.email,
+      phone: state => state.user.phone,
+      userType: state => state.user.userType,
+      sex: state => state.user.sex,
+      bio: state => state.user.bio
+    }),
     userTypeLabel() {
       switch (this.userType) {
         case 'STUDENT': return '学生';
@@ -408,8 +370,12 @@ export default {
     }
   },
   mounted() {
-    // 使用假数据，不需要检查登录状态
-    console.log('个人信息页面使用假数据模式')
+    // 检查用户登录状态
+    const token = this.$store.state.user.token;
+    if (!token) {
+      this.$message.warning('请先登录');
+      this.$router.push('/login');
+    }
   },
   methods: {
     getUserTypeTagType() {
@@ -457,14 +423,34 @@ export default {
         // 显示上传进度
         this.$message.info('正在上传头像...');
 
-        // 模拟上传延迟
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const response = await uploadImage(file);
 
-        // 生成假的上传URL
-        const fakeImageUrl = `https://via.placeholder.com/150x150/ffb6d5/ffffff?text=新头像&t=${Date.now()}`;
-        
-        this.editForm.avatar = fakeImageUrl;
-        this.$message.success('头像上传成功（假数据）');
+        // 检查响应结构
+        if (response && response.code === 200 && response.data) {
+          let imageUrl;
+
+          // 如果response.data是对象，从中获取imageUrl
+          if (typeof response.data === 'object' && response.data.imageUrl) {
+            imageUrl = response.data.imageUrl;
+          }
+          // 如果response.data是字符串，直接使用
+          else if (typeof response.data === 'string') {
+            imageUrl = response.data;
+          }
+          // 其他情况，尝试从response.data中获取
+          else {
+            imageUrl = response.data.imageUrl || response.data.uploadUrl || response.data;
+          }
+
+          if (imageUrl) {
+            this.editForm.avatar = imageUrl;
+            this.$message.success('头像上传成功');
+          } else {
+            this.$message.error('头像上传失败：无法获取图片URL');
+          }
+        } else {
+          this.$message.error('头像上传失败');
+        }
       } catch (error) {
         this.$message.error('头像上传失败，请重试');
       }
@@ -473,7 +459,13 @@ export default {
       this.$refs.editForm.validate(async valid => {
         if (!valid) return;
 
-        // 使用假数据，不需要检查登录状态
+        // 检查用户是否已登录
+        const token = this.$store.state.user.token;
+        if (!token) {
+          this.$message.error('请先登录');
+          this.$router.push('/login');
+          return;
+        }
 
         this.editLoading = true;
         try {
@@ -494,18 +486,19 @@ export default {
           const response = await updateUser(updateData);
 
           if (response && response.data && (response.data.code === 200 || response.data.code === 1)) {
-            this.$message.success(response.data.data || response.data.msg || '个人资料修改成功（假数据）');
+            this.$message.success(response.data.data || response.data.msg || '个人资料修改成功');
 
-            // 更新假数据
+            // 更新Vuex中的用户信息
+            this.$store.commit('SET_NAME', this.editForm.userName);
             if (updateData.avatar) {
-              mockUserData.avatar = updateData.avatar;
+              this.$store.commit('SET_AVATAR', updateData.avatar);
             }
-            mockUserData.userName = this.editForm.userName;
-            mockUserData.email = this.editForm.email;
-            mockUserData.phone = this.editForm.phone;
-            mockUserData.name = this.editForm.name;
-            mockUserData.sex = this.editForm.sex;
-            mockUserData.bio = this.editForm.bio;
+            this.$store.commit('SET_EMAIL', this.editForm.email);
+            this.$store.commit('SET_PHONE', this.editForm.phone);
+
+            this.$store.commit('SET_NAME', this.editForm.name);
+            this.$store.commit('SET_SEX', this.editForm.sex);
+            this.$store.commit('SET_BIO', this.editForm.bio);
 
             this.editDialogVisible = false;
           } else {
@@ -538,7 +531,7 @@ export default {
           const res = await updateUserPassword(passwordData);
 
           if (res && res.data && (res.data.code === 200 || res.data.code === 1)) {
-            this.$message.success(res.data.data || res.data.msg || '密码修改成功（假数据）');
+            this.$message.success(res.data.data || res.data.msg || '密码修改成功');
             this.passwordDialogVisible = false;
             this.resetPasswordForm();
           } else {
