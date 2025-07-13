@@ -245,6 +245,48 @@
 
 <script>
 import { mapState } from 'vuex'
+import request from '@/utils/request'
+
+// 假数据
+const mockUserData = {
+  userName: 'demo_user',
+  name: '张三',
+  avatar: 'https://via.placeholder.com/150x150/ffb6d5/ffffff?text=头像',
+  email: 'zhangsan@example.com',
+  phone: '13800138000',
+  userType: 'STUDENT',
+  sex: 1,
+  bio: '热爱学习的前端开发者，专注于Vue.js和JavaScript技术栈。'
+}
+
+// 模拟API函数
+const updateUser = (data) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // 模拟更新成功
+      Object.assign(mockUserData, data)
+      resolve({
+        data: {
+          code: 200,
+          msg: '个人资料修改成功'
+        }
+      })
+    }, 1000)
+  })
+}
+
+const updateUserPassword = (data) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: {
+          code: 200,
+          msg: '密码修改成功'
+        }
+      })
+    }, 1000)
+  })
+}
 
 export default {
   name: 'Profile',
@@ -261,17 +303,6 @@ export default {
     }
 
     return {
-      // 假数据用户信息
-      mockUserData: {
-        userName: 'demo_user',
-        name: '张三',
-        avatar: 'https://via.placeholder.com/150x150/ffb6d5/ffffff?text=头像',
-        email: 'zhangsan@example.com',
-        phone: '13800138000',
-        userType: 'STUDENT',
-        sex: 1,
-        bio: '热爱学习的前端开发者，专注于Vue.js和JavaScript技术栈。'
-      },
       editDialogVisible: false,
       passwordDialogVisible: false,
       editLoading: false,
@@ -325,28 +356,28 @@ export default {
   computed: {
     // 使用假数据
     userName() {
-      return this.mockUserData.userName
+      return mockUserData.userName
     },
     name() {
-      return this.mockUserData.name
+      return mockUserData.name
     },
     avatar() {
-      return this.mockUserData.avatar
+      return mockUserData.avatar
     },
     email() {
-      return this.mockUserData.email
+      return mockUserData.email
     },
     phone() {
-      return this.mockUserData.phone
+      return mockUserData.phone
     },
     userType() {
-      return this.mockUserData.userType
+      return mockUserData.userType
     },
     sex() {
-      return this.mockUserData.sex
+      return mockUserData.sex
     },
     bio() {
-      return this.mockUserData.bio
+      return mockUserData.bio
     },
     userTypeLabel() {
       switch (this.userType) {
@@ -388,34 +419,6 @@ export default {
         case 'ADMIN': return 'danger';
         default: return 'info';
       }
-    },
-    // 假数据更新用户信息函数
-    mockUpdateUser(data) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // 模拟更新成功
-          Object.assign(this.mockUserData, data)
-          resolve({
-            data: {
-              code: 200,
-              msg: '个人资料修改成功'
-            }
-          })
-        }, 1000)
-      })
-    },
-    // 假数据更新密码函数
-    mockUpdatePassword(data) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            data: {
-              code: 200,
-              msg: '密码修改成功'
-            }
-          })
-        }, 1000)
-      })
     },
     resetEditForm() {
       this.editForm.avatar = this.avatarUrl;
@@ -488,21 +491,21 @@ export default {
             updateData.avatar = this.editForm.avatar;
           }
 
-          const response = await this.mockUpdateUser(updateData);
+          const response = await updateUser(updateData);
 
           if (response && response.data && (response.data.code === 200 || response.data.code === 1)) {
             this.$message.success(response.data.data || response.data.msg || '个人资料修改成功（假数据）');
 
             // 更新假数据
             if (updateData.avatar) {
-              this.mockUserData.avatar = updateData.avatar;
+              mockUserData.avatar = updateData.avatar;
             }
-            this.mockUserData.userName = this.editForm.userName;
-            this.mockUserData.email = this.editForm.email;
-            this.mockUserData.phone = this.editForm.phone;
-            this.mockUserData.name = this.editForm.name;
-            this.mockUserData.sex = this.editForm.sex;
-            this.mockUserData.bio = this.editForm.bio;
+            mockUserData.userName = this.editForm.userName;
+            mockUserData.email = this.editForm.email;
+            mockUserData.phone = this.editForm.phone;
+            mockUserData.name = this.editForm.name;
+            mockUserData.sex = this.editForm.sex;
+            mockUserData.bio = this.editForm.bio;
 
             this.editDialogVisible = false;
           } else {
@@ -532,7 +535,7 @@ export default {
             newPassword: this.passwordForm.newPassword
           };
 
-          const res = await this.mockUpdatePassword(passwordData);
+          const res = await updateUserPassword(passwordData);
 
           if (res && res.data && (res.data.code === 200 || res.data.code === 1)) {
             this.$message.success(res.data.data || res.data.msg || '密码修改成功（假数据）');

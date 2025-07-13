@@ -46,7 +46,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      */
     @Override
     protected void addInterceptors(InterceptorRegistry registry) {
-        log.info("开始注册自定义拦截器...");
+       // log.info("开始注册自定义拦截器...");
         List<String> excludeList = lessonProperties.getInterceptor().getExcludePaths();
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/**")

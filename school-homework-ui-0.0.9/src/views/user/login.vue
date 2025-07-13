@@ -46,7 +46,7 @@
 </template>
 
 <script>
-
+import { login } from '@/api/login'
 
 export default {
   name: "Login",
@@ -88,121 +88,22 @@ export default {
     }
   },
   methods: {
-    // 假数据登录函数
-    mockLogin(username, password) {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (username === 'admin' && password === '123456') {
-            resolve({
-              data: {
-                code: 200,
-                msg: '登录成功',
-                data: {
-                  token: 'mock_token_' + Date.now(),
-                  userInfo: {
-                    userName: 'admin',
-                    name: '管理员',
-                    avatar: 'https://via.placeholder.com/150x150/ffb6d5/ffffff?text=管理员',
-                    email: 'admin@example.com',
-                    phone: '13800138000',
-                    userType: 'ADMIN',
-                    sex: 1,
-                    bio: '系统管理员',
-                    id: 1
-                  }
-                }
-              }
-            })
-          } else if (username === 'teacher' && password === '123456') {
-            resolve({
-              data: {
-                code: 200,
-                msg: '登录成功',
-                data: {
-                  token: 'mock_token_' + Date.now(),
-                  userInfo: {
-                    userName: 'teacher',
-                    name: '李老师',
-                    avatar: 'https://via.placeholder.com/150x150/ffb6d5/ffffff?text=老师',
-                    email: 'teacher@example.com',
-                    phone: '13800138001',
-                    userType: 'TEACHER',
-                    sex: 1,
-                    bio: '资深前端讲师',
-                    id: 2
-                  }
-                }
-              }
-            })
-          } else if (username === 'student' && password === '123456') {
-            resolve({
-              data: {
-                code: 200,
-                msg: '登录成功',
-                data: {
-                  token: 'mock_token_' + Date.now(),
-                  userInfo: {
-                    userName: 'student',
-                    name: '张三',
-                    avatar: 'https://via.placeholder.com/150x150/ffb6d5/ffffff?text=学生',
-                    email: 'student@example.com',
-                    phone: '13800138002',
-                    userType: 'STUDENT',
-                    sex: 1,
-                    bio: '热爱学习的前端开发者',
-                    id: 3
-                  }
-                }
-              }
-            })
-          } else {
-            reject({
-              response: {
-                data: {
-                  code: 401,
-                  msg: '用户名或密码错误'
-                }
-              }
-            })
-          }
-        }, 1000)
-      })
-    },
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
           this.loading = true
-          
-          // 使用假数据登录
-          this.mockLogin(this.loginForm.userName, this.loginForm.passWord)
-            .then(res => {
-              // 模拟登录成功
-              const token = res.data.data.token
-              const userInfo = res.data.data.userInfo
-              
-              // 存储到localStorage
-              localStorage.setItem('token', token)
-              localStorage.setItem('userInfo', JSON.stringify(userInfo))
-              
-              // 更新Vuex状态
-              this.$store.commit('SET_TOKEN', token)
-              this.$store.commit('SET_NAME', userInfo.name)
-              this.$store.commit('SET_USERNAME', userInfo.userName)
-              this.$store.commit('SET_AVATAR', userInfo.avatar)
-              this.$store.commit('SET_USERTYPE', userInfo.userType)
-              this.$store.commit('SET_ID', userInfo.id)
-              
-              this.$message.success('登录成功！（假数据）')
-              this.$router.push({ path: this.redirect || "/" })
-            })
-            .catch(error => {
-              this.loading = false
-              this.$message.error(error.response?.data?.msg || '登录失败，请检查用户名和密码')
-              console.error('登录失败:', error)
-            })
-            .finally(() => {
-              this.loading = false
-            })
+          this.$store.dispatch('Login', {
+            userName: this.loginForm.userName,
+            passWord: this.loginForm.passWord
+          }).then(res => {
+            this.$message.success('登录成功！')
+            this.$router.push({ path: this.redirect || "/" })
+          }).catch(error => {
+            this.loading = false
+            // 显示登录失败的错误信息
+            this.$message.error(error.message || '登录失败，请检查用户名和密码')
+            console.error('登录失败:', error)
+          })
         }
       })
     }

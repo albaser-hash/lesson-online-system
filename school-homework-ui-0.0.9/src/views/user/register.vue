@@ -61,7 +61,7 @@
 </template>
 
 <script>
-
+import { register } from '@/api/login'
 
 export default {
   name: "Register",
@@ -118,41 +118,17 @@ export default {
     }
   },
   methods: {
-    // 假数据注册函数
-    mockRegister(userData) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            data: {
-              code: 200,
-              msg: '注册成功',
-              data: {
-                userId: Date.now(),
-                ...userData
-              }
-            }
-          })
-        }, 1000)
-      })
-    },
     handleRegister() {
       this.$refs.registerForm.validate(valid => {
         if (valid) {
           this.loading = true
           const { confirmPassWord, ...submitForm } = this.registerForm
-          
-          // 使用假数据注册
-          this.mockRegister(submitForm)
-            .then(res => {
-              this.$message.success('注册成功，请登录！（假数据）')
-              this.$router.replace('/login')
-            })
-            .catch(() => {
-              this.$message.error('注册失败，请重试')
-            })
-            .finally(() => {
-              this.loading = false
-            })
+          register(submitForm).then(res => {
+            this.$message.success('注册成功，请登录！')
+            this.$router.replace('/login')
+          }).catch(() => {
+            this.loading = false
+          })
         }
       })
     }
