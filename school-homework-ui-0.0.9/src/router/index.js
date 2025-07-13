@@ -61,6 +61,16 @@ export const constantRoutes = [
     path: '/course-create',
     name: 'CourseCreate',
     component: () => import('@/views/course/TeacherCourseManage.vue')
+  },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: () => import('@/views/course/Favorites.vue')
+  },
+  {
+    path: '/course/:id',
+    name: 'CourseDetail',
+    component: () => import('@/views/course/CourseDetail.vue')
   }
 ]
 
