@@ -23,7 +23,7 @@ spring:
   redis:
     host: localhost
     port: 6379
-    password: 3s675qwe
+    password: 1234
     database: 0
   # 数据源配置（使用 Druid）
   datasource:
@@ -31,7 +31,7 @@ spring:
       driver-class-name: com.mysql.cj.jdbc.Driver # 数据库驱动
       url: jdbc:mysql://localhost:3306/lesson?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
       username: root
-      password: 3s675qwe
+      password: 1234
       # 连接池优化配置
       initial-size: 10
       min-idle: 10
