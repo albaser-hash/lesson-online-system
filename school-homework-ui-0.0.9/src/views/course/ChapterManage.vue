@@ -6,10 +6,11 @@
       preload="metadata"
       style="display: none;"
     ></video>
+
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h2>章节管理 (假数据)</h2>
+          <h2>章节管理</h2>
           <p>{{ courseName }}</p>
         </div>
         <div class="header-actions">
@@ -24,6 +25,7 @@
         </div>
       </div>
     </div>
+
     <el-card class="chapter-manage-card">
       <!-- 章节列表 -->
       <el-table :data="chapters" border style="width:100%;margin-bottom:20px;" v-loading="loading" class="chapter-table">
@@ -61,12 +63,14 @@
           </template>
         </el-table-column>
       </el-table>
+
       <!-- 空数据提示 -->
       <div v-if="!loading && chapters.length === 0" class="empty-state">
         <i class="el-icon-folder"></i>
         <p>暂无章节，点击右上角"添加章节"开始创建课程内容</p>
       </div>
     </el-card>
+
     <!-- 添加/编辑章节弹窗 -->
     <el-dialog :visible.sync="chapterDialogVisible" :title="chapterForm.chapterId ? '编辑章节' : '添加章节'" :width="chapterDialogWidth" class="chapter-dialog">
       <el-form :model="chapterForm" :rules="chapterRules" ref="chapterForm" label-width="100px">
@@ -86,13 +90,14 @@
           <el-switch v-model="chapterForm.isFree" />
         </el-form-item>
         <el-form-item label="文件上传">
-          <!-- 上传进度 -->
+          <!-- 上传进度条 -->
           <div v-if="isUploading" style="margin-bottom: 10px;">
             <el-progress :percentage="uploadProgress" :stroke-width="8" color="#ffb6d5"></el-progress>
             <div style="text-align: center; color: #666; font-size: 12px; margin-top: 5px;">
               正在上传文件... {{ uploadProgress }}%
             </div>
           </div>
+
           <!-- 视频上传 -->
           <el-upload
             v-if="chapterForm.contentType === 'VIDEO'"
@@ -143,7 +148,11 @@
     </el-dialog>
   </div>
 </template>
+
 <script>
+import { getChaptersList, getChaptersDetail, createChapter, updateChapter, deleteChapter } from '@/api/chapters'
+import { uploadVideo, uploadDoc } from '@/api/upload'
+
 export default {
   name: 'ChapterManage',
   data() {
@@ -151,38 +160,7 @@ export default {
       courseId: null,
       courseName: '',
       loading: false,
-      chapters: [
-        {
-          chapterId: 1,
-          chapterName: '第一章：课程介绍',
-          orderNum: 1,
-          contentType: 'VIDEO',
-          isFree: 1,
-          videoUrl: 'https://example.com/chapter1.mp4',
-          videoDuration: '00:15:30',
-          videoSize: 15728640
-        },
-        {
-          chapterId: 2,
-          chapterName: '第二章：基础知识',
-          orderNum: 2,
-          contentType: 'DOCUMENT',
-          isFree: 0,
-          videoUrl: '',
-          videoDuration: '',
-          videoSize: 0
-        },
-        {
-          chapterId: 3,
-          chapterName: '第三章：实践练习',
-          orderNum: 3,
-          contentType: 'VIDEO',
-          isFree: 0,
-          videoUrl: 'https://example.com/chapter3.mp4',
-          videoDuration: '00:25:45',
-          videoSize: 31457280
-        }
-      ],
+      chapters: [],
       chapterDialogVisible: false,
       uploadProgress: 0,
       isUploading: false,
@@ -219,11 +197,21 @@ export default {
         this.$message.error('课程ID不能为空')
         return
       }
+
       this.loading = true
-      setTimeout(() => {
+      getChaptersList(this.courseId).then(res => {
+        if (res.data && res.data.code === 200 && Array.isArray(res.data.data)) {
+          this.chapters = res.data.data
+        } else {
+          this.chapters = []
+        }
         this.loading = false
-        this.$message.success('章节列表加载成功 (假数据)')
-      }, 500)
+      }).catch(error => {
+        console.error('获取章节列表失败:', error)
+        this.chapters = []
+        this.$message.error('获取章节列表失败')
+        this.loading = false
+      })
     },
     addChapter() {
       this.chapterForm = {
@@ -254,13 +242,22 @@ export default {
       this.chapterDialogVisible = true
     },
     deleteChapter(row) {
-      this.$confirm('确定要删除这个章节吗？删除后无法恢复', '确认删除', {
+      this.$confirm('确定要删除这个章节吗？删除后无法恢复。', '确认删除', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.chapters = this.chapters.filter(chapter => chapter.chapterId !== row.chapterId)
-        this.$message.success('删除成功 (假数据)')
+        deleteChapter(row.chapterId).then(res => {
+          if (res.data && res.data.code === 200) {
+            this.$message.success('删除成功')
+            this.loadChapters() // 重新加载章节列表
+          } else {
+            this.$message.error(res.data?.msg || '删除失败')
+          }
+        }).catch(error => {
+          console.error('删除章节失败:', error)
+          this.$message.error('删除失败')
+        })
       }).catch(() => {
         this.$message.info('已取消删除')
       })
@@ -281,44 +278,72 @@ export default {
     async customVideoUpload(options) {
       this.isUploading = true
       this.uploadProgress = 0
-      const interval = setInterval(() => {
-        this.uploadProgress += Math.random() * 20
-        if (this.uploadProgress >= 100) {
-          this.uploadProgress = 100
-          clearInterval(interval)
-          setTimeout(() => {
-            this.chapterForm.fileUrl = 'https://example.com/uploaded-video.mp4'
-            this.chapterForm.duration = '00:10:30'
-            this.chapterForm.fileSize = options.file.size
-            this.$message.success('视频上传成功 (假数据)')
-            this.isUploading = false
-            this.uploadProgress = 0
-          }, 500)
+
+
+      try {
+        // 使用新的uploadVideo函数，它会自动获取视频时长
+        const res = await uploadVideo(options.file, (progress) => {
+          this.uploadProgress = progress
+        })
+
+
+        if (res.code === 200 && res.data) {
+          // 根据后端返回的数据结构，视频URL在videoUrl字段中
+          this.chapterForm.fileUrl = res.data.videoUrl || res.data.url || res.data
+          // 使用后端返回的时长
+          this.chapterForm.duration = res.data.duration || '00:00:00'
+          this.chapterForm.fileSize = res.data.fileSize || options.file.size
+
+
+
+          this.$message.success('视频上传成功')
+        } else {
+          this.$message.error(res.msg || '视频上传失败')
         }
-      }, 200)
+      } catch (error) {
+        console.error('视频上传失败:', error)
+        this.$message.error('视频上传失败')
+      } finally {
+        this.isUploading = false
+        this.uploadProgress = 0
+      }
     },
+    // 从文件获取视频时长的辅助方法
     getVideoDurationFromFile(file) {
+
       return new Promise((resolve, reject) => {
         const video = this.$refs.hiddenVideo;
+
         if (!video) {
           console.error('Video element not found')
           reject(new Error('Video element not found'));
           return;
         }
+
+
+        // 设置超时，防止长时间等待
         const timeout = setTimeout(() => {
           console.warn('获取视频时长超时')
           video.src = '';
           reject(new Error('获取视频时长超时'));
-        }, 10000);
+        }, 10000); // 10秒超时
+
+        // 创建一次性事件监听器
         const handleMetadata = () => {
           clearTimeout(timeout);
+
           if (video.duration && !isNaN(video.duration)) {
             const hours = Math.floor(video.duration / 3600);
             const minutes = Math.floor((video.duration % 3600) / 60);
             const seconds = Math.floor(video.duration % 60);
+
             const formattedDuration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+
+            // 清理
             video.removeEventListener('loadedmetadata', handleMetadata);
             video.src = '';
+
             resolve(formattedDuration);
           } else {
             console.error('无法获取有效的视频时长，duration:', video.duration)
@@ -327,7 +352,10 @@ export default {
             reject(new Error('无法获取有效的视频时长'));
           }
         };
+
         video.addEventListener('loadedmetadata', handleMetadata);
+
+        // 处理错误
         const handleError = () => {
           console.error('视频文件加载失败')
           clearTimeout(timeout);
@@ -336,17 +364,20 @@ export default {
           video.src = '';
           reject(new Error('视频文件加载失败'));
         };
+
         video.addEventListener('error', handleError);
+
+        // 创建文件URL并设置到video元素
         const url = URL.createObjectURL(file);
         video.src = url;
       });
     },
     beforeDocumentUpload(file) {
       const isDocument = file.type === 'application/pdf' ||
-                        file.type === 'application/msword' ||
-                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                        file.type === 'text/plain' ||
-                        file.name.toLowerCase().endsWith('.md')
+        file.type === 'application/msword' ||
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.type === 'text/plain' ||
+        file.name.toLowerCase().endsWith('.md')
       const isLt50M = file.size / 1024 / 1024 < 50
       if (!isDocument) {
         this.$message.error('只能上传 PDF、Word、TXT、Markdown 格式文档!')
@@ -366,61 +397,94 @@ export default {
       }
       this.isUploading = true
       this.uploadProgress = 0
-      const interval = setInterval(() => {
-        this.uploadProgress += Math.random() * 15
-        if (this.uploadProgress >= 100) {
-          this.uploadProgress = 100
-          clearInterval(interval)
-          setTimeout(() => {
-            this.$message.success('文档上传并解析成功 (假数据)')
-            this.isUploading = false
-            this.uploadProgress = 0
-          }, 500)
+      try {
+        const res = await uploadDoc(options.file, this.chapterForm.chapterId, (progress) => {
+          this.uploadProgress = progress
+        })
+        if (res && (res.code === 200)) {
+          this.$message.success('文档上传并解析成功')
+          // 可选：展示minioUrl、fileName等信息
+          // this.uploadedDocInfo = res.data
+        } else {
+          this.$message.error(res?.msg || '文档上传失败')
         }
-      }, 300)
+      } catch (error) {
+        this.$message.error('文档上传失败')
+      } finally {
+        this.isUploading = false
+        this.uploadProgress = 0
+      }
     },
     saveChapter() {
       this.$refs.chapterForm.validate(async valid => {
         if (!valid) return
+        // 只对视频类型校验 fileUrl
         if (this.chapterForm.contentType === 'VIDEO' && !this.chapterForm.fileUrl) {
           this.$message.error('请先上传视频文件')
           return
         }
-        setTimeout(() => {
-          if (this.chapterForm.chapterId) {
-            const index = this.chapters.findIndex(chapter => chapter.chapterId === this.chapterForm.chapterId)
-            if (index !== -1) {
-              this.chapters[index] = {
-                ...this.chapters[index],
-                chapterName: this.chapterForm.chapterName,
-                orderNum: this.chapterForm.orderNum,
-                isFree: this.chapterForm.isFree ? 1 : 0,
-                videoUrl: this.chapterForm.fileUrl,
-                videoDuration: this.chapterForm.duration,
-                videoSize: this.chapterForm.fileSize,
-                contentType: this.chapterForm.contentType
+        // 保证文档类型 fileUrl 为空
+        const isDoc = this.chapterForm.contentType === 'DOCUMENT'
+        const fileUrl = isDoc ? '' : this.chapterForm.fileUrl
+        if (this.chapterForm.chapterId) {
+          // 编辑章节
+          const updateData = {
+            chapterId: this.chapterForm.chapterId,
+            courseId: parseInt(this.courseId),
+            chapterName: this.chapterForm.chapterName,
+            orderNum: this.chapterForm.orderNum,
+            isFree: this.chapterForm.isFree ? 1 : 0,
+            videoUrl: fileUrl,
+            videoDuration: this.chapterForm.duration,
+            videoSize: this.chapterForm.fileSize,
+            contentType: this.chapterForm.contentType
+          }
+          updateChapter(updateData).then(res => {
+            if (res.data && res.data.code === 200) {
+              this.$message.success(res.data.data || '章节更新成功！')
+              this.chapterDialogVisible = false
+              this.loadChapters()
+            } else {
+              this.$message.error(res.data?.msg || '更新失败')
+            }
+          }).catch(error => {
+            console.error('更新章节失败:', error)
+            this.$message.error('更新失败')
+          })
+        } else {
+          // 添加章节
+          const formData = {
+            courseId: parseInt(this.courseId),
+            chapterName: this.chapterForm.chapterName,
+            orderNum: this.chapterForm.orderNum,
+            isFree: this.chapterForm.isFree ? 1 : 0,
+            videoUrl: fileUrl,
+            videoDuration: this.chapterForm.duration,
+            videoSize: this.chapterForm.fileSize || 0,
+            contentType: this.chapterForm.contentType
+          }
+
+
+
+          createChapter(formData).then(res => {
+            if (res.data && res.data.code === 200) {
+              this.$message.success(res.data.msg || '章节添加成功！')
+              this.chapterDialogVisible = false
+              this.loadChapters()
+              if (this.pendingDocFile) {
+                this.chapterForm.chapterId = res.data?.data?.chapterId || null
+                this.customDocumentUpload({ file: this.pendingDocFile })
+                this.pendingDocFile = null
               }
+            } else {
+              this.$message.error(res.data?.msg || '添加失败')
             }
-            this.$message.success('章节更新成功 (假数据)')
-          } else {
-            const newChapter = {
-              chapterId: Date.now(),
-              chapterName: this.chapterForm.chapterName,
-              orderNum: this.chapterForm.orderNum,
-              isFree: this.chapterForm.isFree ? 1 : 0,
-              videoUrl: this.chapterForm.fileUrl,
-              videoDuration: this.chapterForm.duration,
-              videoSize: this.chapterForm.fileSize || 0,
-              contentType: this.chapterForm.contentType
-            }
-            this.chapters.push(newChapter)
-            this.$message.success('章节添加成功 (假数据)')
-          }
-          this.chapterDialogVisible = false
-          if (this.pendingDocFile) {
-            this.pendingDocFile = null
-          }
-        }, 500)
+          }).catch(error => {
+            console.error('添加章节失败:', error)
+            console.error('错误详情:', error.response?.data)
+            this.$message.error('添加失败')
+          })
+        }
       })
     },
     goBack() {
@@ -434,6 +498,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .chapter-manage-page {
   padding: 20px;
@@ -442,9 +507,11 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
 }
+
 .page-header {
   margin-bottom: 20px;
 }
+
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -454,22 +521,26 @@ export default {
   border-radius: 16px;
   box-shadow: 0 4px 16px #f0c1d6cc;
 }
+
 .title-section h2 {
   margin: 0 0 8px 0;
   color: #ff5c8a;
   font-size: 28px;
   font-weight: bold;
 }
+
 .title-section p {
   margin: 0;
   color: #888;
   font-size: 14px;
 }
+
 .header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .add-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -480,13 +551,16 @@ export default {
   display: flex;
   align-items: center;
 }
+
 .add-btn i {
   margin-right: 5px;
 }
+
 .add-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .back-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -497,13 +571,16 @@ export default {
   display: flex;
   align-items: center;
 }
+
 .back-btn i {
   margin-right: 5px;
 }
+
 .back-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .chapter-manage-card {
   margin-bottom: 20px;
   background: #fff;
@@ -512,25 +589,31 @@ export default {
   border: none;
   overflow: hidden;
 }
+
 .chapter-table {
   border-radius: 12px;
   overflow: hidden;
 }
+
 .chapter-table ::v-deep .el-table__header-wrapper {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
 }
+
 .chapter-table ::v-deep .el-table__header th {
   background: transparent;
   color: #ff5c8a;
   font-weight: bold;
   border-bottom: 2px solid #ffb6d5;
 }
+
 .chapter-table ::v-deep .el-table__body tr:hover > td {
   background: #fff5f8;
 }
+
 .chapter-table ::v-deep .el-table__body td {
   border-bottom: 1px solid #ffe4ec;
 }
+
 .content-type-tag {
   background: #ffb6d5 !important;
   color: #fff !important;
@@ -538,10 +621,12 @@ export default {
   font-weight: bold;
   border: none;
 }
+
 .free-tag {
   border-radius: 8px;
   font-weight: bold;
 }
+
 .edit-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -550,31 +635,38 @@ export default {
   border-radius: 8px;
   margin-right: 8px;
 }
+
 .edit-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .delete-btn {
   border-radius: 8px;
   font-weight: bold;
 }
+
 .empty-state {
   text-align: center;
   padding: 40px 0;
   color: #999;
 }
+
 .empty-state i {
   font-size: 48px;
   margin-bottom: 16px;
   color: #ffb6d5;
 }
+
 .empty-state p {
   margin: 0;
   font-size: 16px;
 }
+
 .video-uploader {
   display: inline-block;
 }
+
 .video-uploader-icon {
   font-size: 32px;
   color: #ffb6d5;
@@ -586,6 +678,7 @@ export default {
   text-align: center;
   background: #fff0f6;
 }
+
 .video-preview {
   width: 120px;
   height: 80px;
@@ -598,16 +691,20 @@ export default {
   background: #fff0f6;
   color: #ffb6d5;
 }
+
 .video-preview i {
   font-size: 24px;
   margin-bottom: 4px;
 }
+
 .video-preview span {
   font-size: 12px;
 }
+
 .document-uploader {
   display: inline-block;
 }
+
 .document-uploader-icon {
   font-size: 32px;
   color: #ffb6d5;
@@ -619,6 +716,7 @@ export default {
   text-align: center;
   background: #fff0f6;
 }
+
 .document-preview {
   width: 120px;
   height: 80px;
@@ -631,18 +729,22 @@ export default {
   background: #fff0f6;
   color: #ffb6d5;
 }
+
 .document-preview i {
   font-size: 24px;
   margin-bottom: 4px;
 }
+
 .document-preview span {
   font-size: 12px;
 }
+
 .chapter-dialog ::v-deep .el-dialog__header {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
   color: #ff5c8a;
   font-weight: bold;
 }
+
 .save-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -651,46 +753,57 @@ export default {
   border-radius: 12px;
   padding: 10px 20px;
 }
+
 .save-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 @media (max-width: 768px) {
   .chapter-manage-page {
     padding: 8px;
   }
+
   .header-content {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
+
   .title-section h2 {
     font-size: 24px;
   }
+
   .header-actions {
     flex-direction: column;
     width: 100%;
   }
+
   .add-btn, .back-btn {
     width: 100%;
     margin-bottom: 10px;
   }
+
   .chapter-manage-card {
     border-radius: 10px;
     padding: 8px;
   }
+
   .chapter-table ::v-deep .el-table {
     font-size: 12px;
   }
+
   .chapter-table ::v-deep .el-table th,
   .chapter-table ::v-deep .el-table td {
     padding: 8px 4px;
   }
+
   .edit-btn, .delete-btn {
     margin-bottom: 5px;
     width: 100%;
   }
 }
+
 @media (max-width: 700px) {
   .chapter-dialog ::v-deep .el-dialog__body {
     padding: 8px 2vw !important;
