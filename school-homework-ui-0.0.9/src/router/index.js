@@ -36,6 +36,31 @@ export const constantRoutes = [
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/user/profile.vue')
+  },
+  {
+    path: '/cart',
+    name: 'Cart',
+    component: () => import('@/views/course/Cart.vue')
+  },
+  {
+    path: '/my-courses',
+    name: 'MyCourses',
+    component: () => import('@/views/course/MyCourses.vue')
+  },
+  {
+    path: '/audit',
+    name: 'Audit',
+    component: () => import('@/views/course/Audit.vue')
+  },
+  {
+    path: '/chapter-manage',
+    name: 'ChapterManage',
+    component: () => import('@/views/course/ChapterManage.vue')
+  },
+  {
+    path: '/course-create',
+    name: 'CourseCreate',
+    component: () => import('@/views/course/TeacherCourseManage.vue')
   }
 ]
 
