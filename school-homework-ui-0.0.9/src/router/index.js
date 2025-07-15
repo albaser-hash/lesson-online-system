@@ -81,6 +81,16 @@ export const constantRoutes = [
     path: '/video-player/:courseId/:chapterId',
     name: 'VideoPlayerPage',
     component: () => import('@/views/common/VideoPlayerPage.vue')
+  },
+  {
+    path: '/student/exam',
+    name: 'StudentExamList',
+    component: () => import('@/views/exam/StudentExamList.vue'),
+    meta: {
+      title: '我的考试',
+      requiresAuth: true,
+      role: 'student'
+    }
   }
 ]
 
