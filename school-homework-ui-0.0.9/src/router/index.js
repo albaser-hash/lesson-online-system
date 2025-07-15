@@ -91,6 +91,21 @@ export const constantRoutes = [
       requiresAuth: true,
       role: 'student'
     }
+  },
+  {
+    path: '/teacher/exam/review',
+    name: 'ReviewPapers',
+    component: () => import('@/views/exam/ReviewPapers.vue')
+  },
+  {
+    path: '/teacher/exam',
+    name: 'TeacherExamManagement',
+    component: () => import('@/views/exam/TeacherExamManagement.vue'),
+    meta: {
+      title: '考试管理',
+      requiresAuth: true,
+      role: 'teacher'
+    }
   }
 ]
 

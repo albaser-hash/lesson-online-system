@@ -591,9 +591,7 @@
 import { mapState } from 'vuex'
 import { getExamList, createExam, getExamDetail, publishExam, getExamStatistics, updateExam, deleteExam } from '@/api/exam'
 import { getTeacherTestCourses } from '@/api/createCourse'
-import webSocketService from '@/utils/websocket'
 import { getExamQuestions, saveExamQuestions, clearExamQuestions, getCourseQuestions } from '@/api/exam'
-import { getUserName } from '@/api/user'
 export default {
   name: 'TeacherExamManagement',
   data() {

@@ -101,7 +101,7 @@
 </template>
 <script>
 import { getExamList, getReviewPapers, getPaperDetail, submitReview } from '@/api/exam'
-import { getUserName } from '@/api/user'
+
 export default {
   name: 'ReviewPapers',
   data() {
