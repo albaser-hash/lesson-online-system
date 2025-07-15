@@ -96,14 +96,14 @@
             </el-button>
             <!-- 文档章节：显示"阅读文档"和"下载文档" -->
             <template v-else-if="isDocumentChapter(scope.row)">
-              <el-button
-                size="mini"
-                type="success"
-                @click="goToDocReader(scope.row)"
-                class="action-btn"
-              >
-                阅读文档
-              </el-button>
+            <el-button
+              size="mini"
+              type="success"
+              @click="goToDocReader(scope.row)"
+              class="action-btn"
+            >
+              阅读文档
+            </el-button>
               <el-button
                 size="mini"
                 type="primary"

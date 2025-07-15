@@ -374,10 +374,10 @@ export default {
     },
     beforeDocumentUpload(file) {
       const isDocument = file.type === 'application/pdf' ||
-        file.type === 'application/msword' ||
-        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        file.type === 'text/plain' ||
-        file.name.toLowerCase().endsWith('.md')
+                        file.type === 'application/msword' ||
+                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                        file.type === 'text/plain' ||
+                        file.name.toLowerCase().endsWith('.md')
       const isLt50M = file.size / 1024 / 1024 < 50
       if (!isDocument) {
         this.$message.error('只能上传 PDF、Word、TXT、Markdown 格式文档!')
@@ -463,9 +463,9 @@ export default {
             videoSize: this.chapterForm.fileSize || 0,
             contentType: this.chapterForm.contentType
           }
+          
 
-
-
+          
           createChapter(formData).then(res => {
             if (res.data && res.data.code === 200) {
               this.$message.success(res.data.msg || '章节添加成功！')

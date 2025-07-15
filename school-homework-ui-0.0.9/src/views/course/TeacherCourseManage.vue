@@ -78,8 +78,8 @@
             <span class="page-info">第 {{ page }} / {{ Math.ceil(total / pageSize) }} 页</span>
           </div>
           <div class="pagination-controls">
-            <el-button
-              :disabled="page <= 1"
+            <el-button 
+              :disabled="page <= 1" 
               @click="handlePageChange(page - 1)"
               class="page-btn prev-btn"
               size="small"
@@ -88,8 +88,8 @@
               上一页
             </el-button>
             <div class="page-numbers" v-if="!isMobile">
-              <el-button
-                v-for="p in visiblePages"
+              <el-button 
+                v-for="p in visiblePages" 
                 :key="p"
                 @click="handlePageChange(p)"
                 :class="['page-btn', { active: p === page }]"
@@ -100,8 +100,8 @@
               </el-button>
             </div>
             <div class="page-numbers mobile" v-else>
-              <el-button
-                v-for="p in mobileVisiblePages"
+              <el-button 
+                v-for="p in mobileVisiblePages" 
                 :key="p"
                 @click="handlePageChange(p)"
                 :class="['page-btn', { active: p === page }]"
@@ -111,8 +111,8 @@
                 {{ p }}
               </el-button>
             </div>
-            <el-button
-              :disabled="page >= Math.ceil(total / pageSize)"
+            <el-button 
+              :disabled="page >= Math.ceil(total / pageSize)" 
               @click="handlePageChange(page + 1)"
               class="page-btn next-btn"
               size="small"
@@ -152,11 +152,11 @@
           <el-input-number v-model="courseForm.originalPrice" :min="0" :step="1" />
         </el-form-item>
         <el-form-item label="封面图片">
-          <el-upload
-            class="cover-uploader"
-            action="#"
-            :show-file-list="false"
-            :before-upload="beforeCoverUpload"
+          <el-upload 
+            class="cover-uploader" 
+            action="#" 
+            :show-file-list="false" 
+            :before-upload="beforeCoverUpload" 
             :on-change="handleCoverChange"
             :auto-upload="false"
             :http-request="() => {}"

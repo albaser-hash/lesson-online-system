@@ -94,7 +94,7 @@ export default {
     async onEnded(e) {
       const userType = this.$store?.state?.user?.userType
       if (userType !== 'STUDENT') return
-
+      
       const totalBlocks = Math.ceil(this.duration / this.interval)
       const allWatched = this.watched.length >= totalBlocks && this.watched.slice(0, totalBlocks).every(Boolean)
       if (allWatched) {
@@ -232,4 +232,4 @@ export default {
     max-width: 100vw;
   }
 }
-</style>
+</style> 

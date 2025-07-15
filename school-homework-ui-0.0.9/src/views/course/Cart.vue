@@ -14,6 +14,7 @@
         </div>
       </div>
     </div>
+
     <el-card class="cart-card">
       <el-table :data="cart" border ref="cartTable" @selection-change="handleSelectionChange" style="width:100%;margin-bottom:20px;" class="cart-table">
         <el-table-column type="selection" width="55" />
@@ -36,88 +37,120 @@
       </el-table>
       <div class="cart-actions">
         <el-button type="danger" @click="clearCart" size="small" class="clear-btn">清空购物车</el-button>
-        <el-button type="primary" :disabled="!selected.length" @click="checkout" size="small" class="checkout-btn">结算（{{ selected.length }}门课程）</el-button>
+        <el-button type="primary" :disabled="!selected.length" @click="checkout" size="small" class="checkout-btn">结算（{{ selected.length }}）</el-button>
       </div>
     </el-card>
   </div>
 </template>
+
 <script>
+import { getCartList, removeFromCart, clearCart, createOrder, payOrder } from '@/api/cart'
+
 export default {
   name: 'Cart',
   data() {
     return {
-      cart: [
-        {
-          courseId: 1,
-          courseName: 'Vue.js入门到精通',
-          price: 99.00,
-          coverImage: 'https://example.com/vue-course.jpg',
-        },
-        {
-          courseId: 2,
-          courseName: 'React全栈开发',
-          price: 129.00,
-          coverImage: 'https://example.com/react-course.jpg',
-        },
-        {
-          courseId: 3,
-          courseName: 'Java核心技术',
-          price: 149.00,
-          coverImage: 'https://example.com/java-course.jpg',
-        }
-      ],
+      cart: [],
       selected: []
     }
   },
   created() {
-    console.log('购物车页面使用假数据')
+    this.loadCart()
   },
   methods: {
     goHome() {
       this.$router.push('/')
     },
-    loadCart() {
-      console.log('加载购物车（假数据）')
+    async loadCart() {
+      try {
+        const response = await getCartList()
+        if (response.data.code === 200) {
+          this.cart = response.data.data
+        } else {
+          this.cart = []
+          this.$message.error(response.data.msg || '获取购物车失败')
+        }
+      } catch (error) {
+        console.error('获取购物车失败:', error)
+        this.cart = []
+        this.$message.error('获取购物车失败')
+      }
     },
     handleSelectionChange(val) {
       this.selected = val
     },
-    removeCourse(row) {
-      const index = this.cart.findIndex(item => item.courseId === row.courseId)
-      if (index > -1) {
-        this.cart.splice(index, 1)
-        this.$message.success('已移除（假数据）')
+    async removeCourse(row) {
+      try {
+        const response = await removeFromCart(row.courseId)
+        if (response.data.code === 200) {
+          this.$message.success('已移除')
+          this.loadCart() // 重新加载购物车
+        } else {
+          this.$message.error(response.data.msg || '移除失败')
+        }
+      } catch (error) {
+        console.error('移除课程失败:', error)
+        this.$message.error('移除失败')
       }
     },
-    clearCart() {
-      this.cart = []
-      this.selected = []
-      this.$message.success('购物车已清空（假数据）')
+    async clearCart() {
+      try {
+        const response = await clearCart()
+        if (response.data.code === 200) {
+          this.$message.success('购物车已清空')
+          this.cart = []
+          this.selected = []
+        } else {
+          this.$message.error(response.data.msg || '清空失败')
+        }
+      } catch (error) {
+        console.error('清空购物车失败:', error)
+        this.$message.error('清空失败')
+      }
     },
-    checkout() {
+    async checkout() {
       if (this.selected.length === 0) {
         this.$message.warning('请选择要购买的课程')
         return
       }
-      this.$message.success('正在处理订单（假数据）...')
-      setTimeout(() => {
-        this.$alert('已成功结算' + this.selected.length + ' 门课程！（假数据）', '结算成功', {
-          confirmButtonText: '确定',
-          callback: () => {
-            this.selected.forEach(selectedItem => {
-              const index = this.cart.findIndex(item => item.courseId === selectedItem.courseId)
-              if (index > -1) {
-                this.cart.splice(index, 1)
+
+      try {
+        // 创建订单
+        const courseIds = this.selected.map(c => c.courseId)
+        const orderData = {
+          courseIds: courseIds,
+          paymentMethod: 'ALIPAY' // 默认使用支付宝
+        }
+
+        const createResponse = await createOrder(orderData)
+        if (createResponse.data.code === 200) {
+          const orderId = createResponse.data.data
+
+          // 模拟支付
+          const payResponse = await payOrder(orderId)
+          if (payResponse.data.code === 200) {
+            this.$alert('已成功结算 ' + this.selected.length + ' 门课程！', '结算成功', {
+              confirmButtonText: '确定',
+              callback: () => {
+                this.loadCart() // 重新加载购物车
+                this.selected = []
               }
             })
-            this.selected = []
+          } else {
+            this.$message.error(payResponse.data.msg || '支付失败')
           }
-        })
-      }, 1500)
+        } else {
+          this.$message.error(createResponse.data.msg || '创建订单失败')
+        }
+      } catch (error) {
+        console.error('结算失败:', error)
+        this.$message.error('结算失败')
+      }
     }
   }
 }
 </script>
+
 <style scoped>
 .cart-page {
   padding: 20px;
