@@ -2,6 +2,7 @@ package com.lesson.service;
 
 import com.lesson.dto.UserLoginDTO;
 import com.lesson.dto.UserRegisterDTO;
+import com.lesson.entity.Chapter;
 import com.lesson.entity.User;
 
 public interface UserService {
@@ -18,4 +19,11 @@ public interface UserService {
 
     User getUserById(Integer currentId);
 
+    /**
+     * 判断用户是否有权限观看某章节视频
+     * @param userId 用户ID
+     * @param chapter 章节对象
+     * @return true=有权限，false=无权限
+     */
+    boolean canPlayChapter(Integer userId, Chapter chapter);
 }

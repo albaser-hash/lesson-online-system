@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.lesson.dto.UserLoginDTO;
 import com.lesson.dto.UserRegisterDTO;
+import com.lesson.entity.Chapter;
 import com.lesson.entity.User;
 import com.lesson.exception.LoginFailedException;
 import com.lesson.mapper.UserMapper;
@@ -24,7 +25,8 @@ import static com.lesson.context.BaseContext.removeCurrentId;
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserMapper  userMapper;
-
+    @Autowired
+    private com.lesson.service.OrderService orderService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     //用户注册
     @Override
@@ -111,6 +113,42 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Integer currentId) {
         return userMapper.selectById(currentId);
+    }
+
+    @Override
+    public boolean canPlayChapter(Integer userId, Chapter chapter) {
+        if (userId == null || chapter == null) return false;
+        // 1. 获取用户
+        User user = getUserById(userId);
+        if (user == null) return false;
+        
+        try {
+
+            // 3. 检查videoUrl是否存在
+            if (chapter.getVideoUrl() == null || chapter.getVideoUrl().trim().isEmpty()) {
+                return false;
+            }
+            // 4. 管理员可看
+            if ("ADMIN".equalsIgnoreCase(user.getUserType())) {
+                return true;
+            }
+            if (chapter.getIsFree() == 1) {
+                return true;
+            }
+            // 5. 老师本人可看（只用teacherId字段）
+            if ("TEACHER".equalsIgnoreCase(user.getUserType()) && chapter.getTeacherId() != null && chapter.getTeacherId().equals(userId)) {
+                return true;
+            }
+            // 6. 学生：免费章节直接放行，付费章节需已购
+            if ("STUDENT".equalsIgnoreCase(user.getUserType()) && chapter.getCourseId() != null) {
+                return orderService.hasPurchased(userId, chapter.getCourseId());
+            }
+        } catch (Exception e) {
+            log.error("权限检查异常: userId={}, chapterId={}, error={}", userId, chapter.getChapterId(), e.getMessage());
+            return false;
+        }
+        
+        return false;
     }
 
 }

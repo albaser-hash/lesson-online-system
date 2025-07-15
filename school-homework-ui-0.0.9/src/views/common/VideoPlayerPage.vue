@@ -29,7 +29,9 @@
     </div>
   </div>
 </template>
+
 <script>
+import { reportChapterProgress } from '@/api/chapters'
 export default {
   name: 'VideoPlayerPage',
   data() {
@@ -45,6 +47,7 @@ export default {
     }
   },
   created() {
+    // 支持 params 和 query 方式
     this.videoUrl = this.$route.params.videoUrl || this.$route.query.videoUrl
     this.title = this.$route.params.chapterName || this.$route.query.chapterName || '视频播放'
     this.chapterId = this.$route.params.chapterId || this.$route.query.chapterId
@@ -81,7 +84,7 @@ export default {
       const idx = Math.floor(e.target.currentTime / this.interval)
       const maxIdx = this.watched.lastIndexOf(true)
       if (idx > maxIdx + 1) {
-        this.$confirm('请按顺序观看，不能跳过！（假数据）', '提示', {
+        this.$confirm('请按顺序观看，不能跳过！', '提示', {
           confirmButtonText: '知道了',
           showCancelButton: false,
           type: 'warning'
@@ -91,14 +94,26 @@ export default {
     async onEnded(e) {
       const userType = this.$store?.state?.user?.userType
       if (userType !== 'STUDENT') return
+
       const totalBlocks = Math.ceil(this.duration / this.interval)
       const allWatched = this.watched.length >= totalBlocks && this.watched.slice(0, totalBlocks).every(Boolean)
       if (allWatched) {
-        this.$alert('视频学习进度已记录（假数据）', '提示', {
-          confirmButtonText: '确定',
-          type: 'success'
-        })
-        this.$confirm('已完成本节学习，是否返回课程详情？（假数据）', '提示', {
+        try {
+          await reportChapterProgress({
+            courseId: this.courseId,
+            chapterId: this.chapterId
+          })
+          this.$alert('视频学习进度已记录', '提示', {
+            confirmButtonText: '确定',
+            type: 'success'
+          })
+        } catch {
+          this.$alert('视频进度上报失败', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+        }
+        this.$confirm('已完成本节学习，是否返回课程详情？', '提示', {
           confirmButtonText: '立即返回',
           cancelButtonText: '留在本页',
           type: 'success'
@@ -106,7 +121,7 @@ export default {
           this.goBackToCourse()
         })
       } else {
-        this.$confirm('请完整观看视频，不能跳过！（假数据）', '提示', {
+        this.$confirm('请完整观看视频，不能跳过！', '提示', {
           confirmButtonText: '知道了',
           showCancelButton: false,
           type: 'warning'
@@ -116,6 +131,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .video-fullscreen {
   width: 100vw;
@@ -216,4 +232,4 @@ export default {
     max-width: 100vw;
   }
 }
-</style> 
+</style>

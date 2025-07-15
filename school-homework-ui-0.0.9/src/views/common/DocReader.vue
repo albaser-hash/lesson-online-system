@@ -54,9 +54,13 @@
     </div>
   </div>
 </template>
+
 <script>
+import axios from 'axios'
+import { getChapterDocPages, getDocDownloadUrl, reportChapterProgress } from '@/api/chapters'
 import { mapState } from 'vuex'
 import marked from 'marked'
+import { addToCart } from '@/api/cart'
 export default {
   name: 'DocReader',
   props: {
@@ -68,19 +72,67 @@ export default {
   data() {
     return {
       loading: false,
-      pages: [
-        { content: '# 第一章：Vue.js简介\nVue.js 是一套用于构建用户界面的渐进式框架。' },
-        { content: '## 第二章：组件化开发\n组件系统是Vue 的核心特性之一。' },
-        { content: '### 第三章：响应式原理\nVue 的响应式系统使得数据变化自动驱动视图更新。' }
-      ],
+      pages: [],
       currentPage: 1,
       finished: false,
-      hasContent: true,
+      hasContent: false,
       downloadMessage: '',
       downloadUrl: '',
-      fileName: 'vue-course.md',
-      isMarkdown: true,
+      fileName: '',
+      isMarkdown: false,
       renderedPages: []
+    }
+  },
+  created() {
+  },
+  mounted() {
+    // 页面模式：只要有 chapterId 就加载
+    if (this.realChapterId) {
+      this.loadPages()
+    }
+  },
+  watch: {
+    visible(val) {
+      if (val) {
+        if (this.docJson) {
+          this.parseDocJson(this.docJson)
+        } else if (this.realChapterId) {
+          this.loadPages()
+        }
+        // 打开时如果已在最后一页且未上报，自动触发
+        if (this.hasContent && this.currentPage === this.pages.length && this.pages.length > 0 && !this.finished) {
+          const userType = this.$store?.state?.user?.userType
+          if (userType === 'STUDENT') {
+            this.finished = true
+            this.$emit('finished')
+            this.reportDocFinished && this.reportDocFinished()
+            window.dispatchEvent(new Event('doc-finished-debug'))
+          }
+        }
+      }
+    },
+    currentPage(val) {
+      if (val === this.pages.length && this.pages.length > 0) {
+        const userType = this.$store?.state?.user?.userType
+        if (userType === 'STUDENT') {
+          this.finished = true
+          this.$emit('finished')
+          this.reportDocFinished && this.reportDocFinished()
+        }
+      }
+    },
+    docJson: {
+      handler(val) {
+        if (val) {
+          this.parseDocJson(val)
+        }
+      },
+      immediate: true
+    },
+    chapterId(val) {
+      if (this.visible && !this.docJson && this.realChapterId) {
+        this.loadPages()
+      }
     }
   },
   computed: {
@@ -88,13 +140,155 @@ export default {
       userId: state => state.user.id
     }),
     realChapterId() {
+      // 路由优先，props 兜底
       return this.$route.params.chapterId || this.chapterId || ''
     }
   },
-  mounted() {
-    this.renderedPages = this.pages.map(p => marked(p.content || ''))
-  },
   methods: {
+    async loadPages() {
+      this.loading = true
+      this.pages = []
+      this.currentPage = 1
+      this.finished = false
+      this.hasContent = false
+      this.downloadMessage = ''
+      this.downloadUrl = ''
+      this.fileName = ''
+
+      try {
+        const res = await getChapterDocPages(this.realChapterId, this.userId)
+
+        if (!res.data || res.data.code !== 200) {
+          // 处理无权限、未登录等情况
+          if (res.data && res.data.code === 403) {
+            const userType = this.$store?.state?.user?.userType
+            if (userType === 'TEACHER') {
+              this.$message.error('没有权限阅读该文档')
+              this.loading = false
+              return
+            }
+            // 学生或其它，弹窗引导购买
+            this.$confirm('您未购买该课程，是否立即购买？', '无权限阅读', {
+              confirmButtonText: '去购买',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(async () => {
+              // 先加购再跳转购物车
+              const courseId = this.$route.params.courseId
+              if (courseId) {
+                try {
+                  const response = await addToCart({ courseId })
+                  const res = response.data
+                  if (res.code === 200) {
+                    this.$message.success('已加入购物车')
+                    this.handleClose()
+                    this.$router.push('/cart')
+                  } else {
+                    this.$message.error(res.msg || '加入购物车失败')
+                  }
+                } catch (e) {
+                  this.$message.error('加入购物车失败')
+                }
+              } else {
+                this.$message.error('课程ID无效，无法加入购物车')
+              }
+            }).catch(() => {
+              this.handleClose()
+            })
+            this.loading = false
+            return
+          }
+          // 其它错误
+          this.hasContent = false
+          this.downloadMessage = res.data?.msg || '加载文档失败，请下载原始文件查看'
+          this.loading = false
+          return
+        }
+        const docData = res.data.data
+        if (docData && docData.hasContent && docData.pages) {
+          // 有解析的内容
+          this.pages = docData.pages
+          this.hasContent = true
+          // 自动判断是否为 Markdown
+          if (this.pages.length > 0) {
+            const firstContent = this.pages[0].content || ''
+            this.isMarkdown = firstContent.trim().startsWith('#') || firstContent.includes('**') || firstContent.includes('|')
+            if (this.isMarkdown) {
+              this.renderedPages = this.pages.map(p => marked(p.content || ''))
+            } else {
+              this.renderedPages = []
+            }
+          }
+        } else {
+          // 没有解析的内容，显示下载选项
+          this.hasContent = false
+          this.downloadMessage = docData?.message || '文档尚未解析，请下载原始文件查看'
+          this.downloadUrl = docData?.downloadUrl || ''
+          this.fileName = docData?.fileName || ''
+          this.isMarkdown = this.fileName && this.fileName.toLowerCase().endsWith('.md')
+        }
+      } catch (e) {
+        this.hasContent = false
+        this.downloadMessage = '加载文档失败，请下载原始文件查看'
+      }
+      this.loading = false
+      // 单页文档自动上报
+      if (this.hasContent && this.pages.length === 1 && !this.finished) {
+        const userType = this.$store?.state?.user?.userType
+        if (userType === 'STUDENT') {
+          this.finished = true
+          this.$emit('finished')
+          this.reportDocFinished && this.reportDocFinished()
+          window.dispatchEvent(new Event('doc-finished-debug'))
+        }
+      }
+    },
+    parseDocJson(val) {
+      this.loading = true
+      this.pages = []
+      this.currentPage = 1
+      this.finished = false
+      this.hasContent = false
+      this.downloadMessage = ''
+      this.downloadUrl = ''
+      this.fileName = ''
+
+      try {
+        const json = JSON.parse(val)
+        if (json.pages && json.pages.length > 0) {
+          this.pages = json.pages
+          this.hasContent = true
+          // 自动判断是否为 Markdown
+          if (this.pages.length > 0) {
+            const firstContent = this.pages[0].content || ''
+            this.isMarkdown = firstContent.trim().startsWith('#') || firstContent.includes('**') || firstContent.includes('|')
+            if (this.isMarkdown) {
+              this.renderedPages = this.pages.map(p => marked(p.content || ''))
+            } else {
+              this.renderedPages = []
+            }
+          }
+        } else {
+          this.hasContent = false
+          this.downloadMessage = '文档内容为空，请下载原始文件查看'
+        }
+      } catch (e) {
+        console.error('docJson解析失败', e)
+        this.hasContent = false
+        this.downloadMessage = '文档解析失败，请下载原始文件查看'
+      }
+      this.loading = false
+      // 单页文档自动上报
+      if (this.hasContent && this.pages.length === 1 && !this.finished) {
+        const userType = this.$store?.state?.user?.userType
+        if (userType === 'STUDENT') {
+          this.finished = true
+          this.$emit('finished')
+          this.reportDocFinished && this.reportDocFinished()
+          window.dispatchEvent(new Event('doc-finished-debug'))
+        }
+      }
+    },
     onPageChange(page) {
       this.currentPage = page
       if (this.currentPage === this.pages.length && this.pages.length > 0 && !this.finished) {
@@ -102,35 +296,76 @@ export default {
         if (userType === 'STUDENT') {
           this.finished = true
           this.$emit('finished')
+          this.reportDocFinished && this.reportDocFinished()
         }
       }
     },
     async downloadFile() {
-      this.$message.success('开始下载文档（假数据）')
-      setTimeout(() => {
-        this.$message.success('文档下载完成（假数据）')
-        const userType = this.$store?.state?.user?.userType
-        if (userType === 'STUDENT') {
-          this.finished = true
-          this.$emit('finished')
+      if (this.realChapterId) {
+        try {
+          const res = await getDocDownloadUrl(this.realChapterId, this.userId)
+          if (res.data && res.data.code === 200 && res.data.data) {
+            const link = document.createElement('a')
+            link.href = res.data.data
+            link.download = this.fileName || 'document'
+            link.target = '_blank'
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            this.$message.success('开始下载文档（5分钟内有效）')
+            // 下载时自动标记为学习完成（仅学生）
+            const userType = this.$store?.state?.user?.userType
+            if (userType === 'STUDENT') {
+              this.finished = true
+              this.$emit('finished')
+              this.reportDocFinished && this.reportDocFinished()
+            }
+          } else if (res.data && res.data.msg && res.data.msg.includes('登录')) {
+            this.$confirm('请先登录后下载文档', '提示', { type: 'warning' }).then(() => {
+              this.$router.push('/login')
+            })
+          } else if (res.data && res.data.msg && res.data.msg.includes('购买')) {
+            this.$confirm('请先购买课程后下载文档，是否加入购物车？', '提示', { type: 'warning' }).then(() => {
+              this.$emit('add-to-cart')
+            })
+          } else if (res.data && res.data.msg) {
+            this.$confirm(res.data.msg, '下载失败', { type: 'error' })
+          } else {
+            this.$message.error('获取下载链接失败')
+          }
+        } catch (e) {
+          this.$message.error('获取下载链接失败')
         }
-      }, 1500)
+      } else {
+        this.$message.error('下载链接无效')
+      }
     },
     handleClose() {
       this.$emit('update:visible', false)
     },
     goBackToCourse() {
+      // 跳转到课程详情，路由参数名是 id
       const courseId = this.$route.params.courseId
       if (courseId) {
         this.$router.push({ name: 'CourseDetail', params: { id: courseId } })
       } else {
-        this.$router.push({ name: 'CourseList' })
+        this.$router.push({ name: 'CourseList' }) // 兜底跳转到课程列表
       }
+    },
+    async reportDocFinished() {
+      const courseId = this.$route.params.courseId
+      const chapterId = this.realChapterId
+      if (!courseId || !chapterId) return
+      try {
+        await reportChapterProgress({ courseId, chapterId })
+      } catch {}
     }
   }
 }
 </script>
+
 <style scoped>
+/* 页面主容器样式 */
 .doc-reader-page {
   width: 100vw;
   min-height: 100vh;
@@ -140,6 +375,7 @@ export default {
   align-items: stretch;
   padding-bottom: 32px;
 }
+/* 顶部标题栏 */
 .doc-reader-header {
   width: 100vw;
   margin: 0;
@@ -176,6 +412,7 @@ export default {
   background: #ffb6d5 !important;
   color: #fff !important;
 }
+/* 内容区样式（继承原有） */
 .doc-content-area {
   min-height: 320px;
   display: flex;
@@ -188,6 +425,7 @@ export default {
   box-sizing: border-box;
   padding: 0 0 0 0;
 }
+/* 新增内容区flex容器，内容撑满，分页栏始终底部 */
 .doc-content-flex {
   flex: 1 1 auto;
   display: flex;
@@ -334,6 +572,8 @@ export default {
   font-size: 17px;
   margin-top: 18px;
 }
+
+/* 响应式优化 */
 @media (max-width: 900px) {
   .doc-reader-page {
     width: 100vw;
@@ -437,4 +677,5 @@ export default {
   }
 }
 </style>
+
 <style src="github-markdown-css/github-markdown.css"></style>
