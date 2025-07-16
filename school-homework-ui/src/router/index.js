@@ -111,7 +111,13 @@ export const constantRoutes = [
     path: '/forum',
     name: 'Forum',
     component: () => import('@/views/forum/Forum.vue')
+  },
+  {
+    path: '/qa',
+    name: 'QA',
+    component: () => import('@/views/qa/QA.vue')
   }
+
 ]
 
 export default new Router({
