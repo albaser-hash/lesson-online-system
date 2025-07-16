@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lesson.mapper.ExamQuestionMapper">
+
+    <resultMap id="ExamQuestionVOMap" type="com.lesson.vo.ExamDetailVO$ExamQuestionVO">
+        <id column="question_id" property="questionId"/>
+        <result column="question_type" property="questionType"/>
+        <result column="question_content" property="questionContent"/>
+        <result column="options" property="options"/>
+        <result column="correct_answer" property="correctAnswer"/>
+        <result column="score" property="score"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="create_time" property="createTime"/>
+        <result column="explanation" property="explanation"/>
+    </resultMap>
+
+    <!-- 获取考试的所有题目（包含答案，用于教师查看） -->
+    <select id="selectExamQuestions" resultMap="ExamQuestionVOMap">
+        SELECT 
+            q.question_id,
+            q.question_type,
+            q.question_content,
+            q.options,
+            q.correct_answer,
+            q.score,
+            q.difficulty,
+            q.create_time,
+            q.explanation
+        FROM exam_questions q
+        WHERE q.exam_id = #{examId}
+        ORDER BY q.question_id
+    </select>
+
+    <!-- 获取考试题目（不包含答案，用于学生考试） -->
+    <select id="selectExamQuestionsForStudent" resultMap="ExamQuestionVOMap">
+        SELECT 
+            q.question_id,
+            q.question_type,
+            q.question_content,
+            q.options,
+            q.score,
+            q.difficulty,
+            q.create_time
+        FROM exam_questions q
+        WHERE q.exam_id = #{examId}
+        ORDER BY q.question_id
+    </select>
+
+    <select id="selectByExamId" resultType="com.lesson.entity.ExamQuestion">
+        SELECT * FROM exam_questions WHERE exam_id = #{examId} ORDER BY question_id
+    </select>
+
+    <delete id="deleteByExamId">
+        DELETE FROM exam_questions WHERE exam_id = #{examId}
+    </delete>
+
+    <insert id="batchInsert">
+        INSERT INTO exam_questions (exam_id, question_type, question_content, options, correct_answer, score, difficulty, explanation)
+        VALUES
+        <foreach collection="questions" item="q" separator=",">
+            (#{examId}, #{q.questionType}, #{q.questionContent}, #{q.options}, #{q.correctAnswer}, #{q.score}, #{q.difficulty}, #{q.explanation})
+        </foreach>
+    </insert>
+
+    <select id="selectByCourseId" resultType="com.lesson.entity.ExamQuestion">
+        SELECT * FROM exam_questions WHERE exam_id IN (SELECT exam_id FROM exam WHERE course_id = #{courseId}) ORDER BY question_id
+    </select>
+
+</mapper> 

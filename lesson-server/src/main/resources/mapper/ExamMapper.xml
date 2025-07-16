@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lesson.mapper.ExamMapper">
+
+    <resultMap id="ExamVOMap" type="com.lesson.vo.ExamVO">
+        <id column="exam_id" property="examId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="course_name" property="courseName"/>
+        <result column="teacher_id" property="teacherId"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="exam_name" property="examName"/>
+        <result column="exam_count" property="examCount"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="status" property="status"/>
+        <result column="has_submitted" property="hasSubmitted"/>
+        <result column="score" property="score"/>
+    </resultMap>
+
+    <select id="selectStudentExams" resultMap="ExamVOMap">
+        SELECT 
+            e.exam_id,
+            e.course_id,
+            c.course_name,
+            e.teacher_id,
+            COALESCE(NULLIF(u.name, ''), u.user_name) as teacher_name,
+            e.exam_name,
+            (SELECT COUNT(1) FROM exam_questions eq WHERE eq.exam_id = e.exam_id) AS exam_count,
+            e.start_time,
+            e.end_time,
+            e.create_time,
+            CASE 
+                WHEN ep.is_reviewed = 1 AND ep.final_score IS NOT NULL THEN ep.final_score
+                ELSE ep.auto_score
+            END as score,
+            CASE 
+                WHEN CURRENT_TIMESTAMP &lt; e.start_time THEN 'UPCOMING'
+                WHEN CURRENT_TIMESTAMP BETWEEN e.start_time AND e.end_time THEN 'ONGOING'
+                ELSE 'FINISHED'
+            END as status,
+            CASE WHEN ep.paper_id IS NOT NULL THEN 1 ELSE 0 END as has_submitted
+        FROM exam e
+        INNER JOIN course c ON e.course_id = c.course_id
+        INNER JOIN user u ON e.teacher_id = u.user_id
+        INNER JOIN orders o ON c.course_id = o.course_id AND o.user_id = #{userId} AND o.order_status = 'PAID'
+        LEFT JOIN exam_papers ep ON e.exam_id = ep.exam_id AND ep.user_id = #{userId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="selectTeacherExams" resultMap="ExamVOMap">
+        SELECT 
+            e.exam_id,
+            e.course_id,
+            c.course_name,
+            e.teacher_id,
+            u.user_name as teacher_name,
+            e.exam_name,
+            e.exam_count,
+            e.start_time,
+            e.end_time,
+            e.create_time,
+            CASE 
+                WHEN CURRENT_TIMESTAMP &lt; e.start_time THEN 'UPCOMING'
+                WHEN CURRENT_TIMESTAMP BETWEEN e.start_time AND e.end_time THEN 'ONGOING'
+                ELSE 'FINISHED'
+            END as status,
+            0 as has_submitted
+        FROM exam e
+        INNER JOIN course c ON e.course_id = c.course_id
+        INNER JOIN user u ON e.teacher_id = u.user_id
+        WHERE e.teacher_id = #{teacherId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="selectCourseExams" resultMap="ExamVOMap">
+        SELECT 
+            e.exam_id,
+            e.course_id,
+            c.course_name,
+            e.teacher_id,
+            u.user_name as teacher_name,
+            e.exam_name,
+            e.exam_count,
+            e.start_time,
+            e.end_time,
+            e.create_time,
+            CASE 
+                WHEN CURRENT_TIMESTAMP &lt; e.start_time THEN 'UPCOMING'
+                WHEN CURRENT_TIMESTAMP BETWEEN e.start_time AND e.end_time THEN 'ONGOING'
+                ELSE 'FINISHED'
+            END as status,
+            0 as has_submitted
+        FROM exam e
+        INNER JOIN course c ON e.course_id = c.course_id
+        INNER JOIN user u ON e.teacher_id = u.user_id
+        WHERE e.course_id = #{courseId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <update id="updateExamsTimeByTeacherId">
+        UPDATE exam
+        SET start_time = #{startTime}, end_time = #{endTime}
+        WHERE teacher_id = #{teacherId}
+    </update>
+
+</mapper> 
