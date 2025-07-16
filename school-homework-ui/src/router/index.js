@@ -106,6 +106,11 @@ export const constantRoutes = [
       requiresAuth: true,
       role: 'teacher'
     }
+  },
+  {
+    path: '/forum',
+    name: 'Forum',
+    component: () => import('@/views/forum/Forum.vue')
   }
 ]
 
