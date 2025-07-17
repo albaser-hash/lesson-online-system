@@ -64,7 +64,7 @@ public class CartServiceImpl implements CartService {
         
         int result = cartMapper.insert(cartItem);
         
-       // log.info("添加到购物车成功 - 用户ID: {}, 课程ID: {}, 结果: {}", currentUserId, courseId, result > 0);
+        log.info("添加到购物车成功 - 用户ID: {}, 课程ID: {}, 结果: {}", currentUserId, courseId, result > 0);
         
         return result > 0;
     }
@@ -96,7 +96,7 @@ public class CartServiceImpl implements CartService {
         
         int result = cartMapper.delete(queryWrapper);
         
-      //  log.info("从购物车移除成功 - 用户ID: {}, 课程ID: {}, 结果: {}", currentUserId, courseId, result > 0);
+        log.info("从购物车移除成功 - 用户ID: {}, 课程ID: {}, 结果: {}", currentUserId, courseId, result > 0);
         
         return result > 0;
     }
@@ -115,7 +115,7 @@ public class CartServiceImpl implements CartService {
         
         int result = cartMapper.delete(queryWrapper);
         
-       // log.info("清空购物车成功 - 用户ID: {}, 结果: {}", currentUserId, result > 0);
+        log.info("清空购物车成功 - 用户ID: {}, 结果: {}", currentUserId, result > 0);
         
         return result > 0;
     }

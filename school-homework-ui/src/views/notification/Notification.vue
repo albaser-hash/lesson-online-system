@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h2>我的消息 (假数据)</h2>
+          <h2>我的消息</h2>
           <p>系统推送与通知</p>
         </div>
         <el-button
@@ -89,60 +89,23 @@
     </el-card>
   </div>
 </template>
+
 <script>
 import { mapState } from 'vuex'
+import { getNotificationList, getUnreadCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications as deleteAllNotificationsApi } from '@/api/notification'
+import webSocketService from '@/utils/websocket'
+
 export default {
   name: 'Notification',
   data() {
     return {
       loading: false,
-      notifications: [
-        {
-          notificationId: 1,
-          content: '您的高等数学基础课程已通过审核，现在可以正常使用了。',
-          type: 'COURSE',
-          isRead: false,
-          createTime: '2024-01-15 10:30:00',
-          link: '/course/1'
-        },
-        {
-          notificationId: 2,
-          content: '新的考试通知：线性代数期末考试将于本周五下午2点开始。',
-          type: 'EXAM',
-          isRead: false,
-          createTime: '2024-01-14 16:45:00',
-          link: '/exam/1'
-        },
-        {
-          notificationId: 3,
-          content: '系统维护通知：今晚22:00-24:00将进行系统维护，期间可能无法正常访问。',
-          type: 'SYSTEM',
-          isRead: true,
-          createTime: '2024-01-13 09:15:00',
-          link: ''
-        },
-        {
-          notificationId: 4,
-          content: '您的课程“概率论与数理统计”审核未通过，请查看详情并修改后重新提交。',
-          type: 'COURSE',
-          isRead: false,
-          createTime: '2024-01-12 14:20:00',
-          link: '/course/3'
-        },
-        {
-          notificationId: 5,
-          content: '欢迎使用在线教育平台！如有问题请随时联系客服。',
-          type: 'SYSTEM',
-          isRead: true,
-          createTime: '2024-01-10 08:00:00',
-          link: ''
-        }
-      ],
-      unreadCount: 3,
+      notifications: [],
+      unreadCount: 0,
       pagination: {
         page: 1,
         pageSize: 10,
-        total: 5
+        total: 0
       },
       detailDialogVisible: false,
       currentDetail: null
@@ -164,13 +127,17 @@ export default {
   },
   mounted() {
     if (this.isLogin) {
-      setTimeout(() => {
-        this.onNewNotification({
-          message: '您有一条新的系统通知 (假数据)',
-          examName: null
-        })
-      }, 3000)
+      // 监听 WebSocket 推送，确保回调能拿到消息体
+      webSocketService.addListener('EXAM_NOTIFICATION', msg => this.onNewNotification(msg))
+      webSocketService.addListener('SYSTEM_NOTIFICATION', msg => this.onNewNotification(msg))
+      webSocketService.addListener('COURSE_NOTIFICATION', msg => this.onNewNotification(msg))
     }
+  },
+  beforeDestroy() {
+    // 移除监听器，防止内存泄漏
+    webSocketService.removeListener('EXAM_NOTIFICATION', this.onNewNotification)
+    webSocketService.removeListener('SYSTEM_NOTIFICATION', this.onNewNotification)
+    webSocketService.removeListener('COURSE_NOTIFICATION', this.onNewNotification)
   },
   methods: {
     goHome() {
@@ -181,23 +148,58 @@ export default {
     },
     async loadNotifications() {
       this.loading = true
-      setTimeout(() => {
+      try {
+        const response = await getNotificationList(this.userId, this.pagination.page, this.pagination.pageSize)
+        const res = response.data // 统一解包
+        if (res && res.code === 200 && res.data) {
+          this.notifications = (res.data.records || []).sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+          this.pagination.total = res.data.total || 0
+          this.fetchUnreadCount()
+        } else {
+          this.notifications = []
+          this.pagination.total = 0
+          this.$message.error(res?.msg || '加载消息失败')
+        }
+      } catch (e) {
+        this.$message.error('加载消息失败')
+      } finally {
         this.loading = false
-        this.$message.success('消息列表加载成功 (假数据)')
-      }, 500)
+      }
     },
     async fetchUnreadCount() {
-      this.unreadCount = this.notifications.filter(n => !n.isRead).length
+      try {
+        const response = await getUnreadCount(this.userId)
+        const res = response.data // 统一解包
+        if (res && res.code === 200) {
+          this.unreadCount = res.data
+        } else {
+          this.unreadCount = 0
+        }
+      } catch {
+        this.unreadCount = 0
+      }
     },
     async markRead(row) {
-      row.isRead = true
-      this.$message.success('标记已读成功 (假数据)')
-      this.fetchUnreadCount()
+      const response = await markNotificationRead(row.notificationId)
+      const res = response.data // 统一解包
+      if (res && res.code === 200) {
+        row.isRead = true
+        this.$message.success(res.data || res.msg || '标记已读成功')
+        this.fetchUnreadCount()
+      } else {
+        this.$message.error(res?.msg || '标记已读失败')
+      }
     },
     async markAllRead() {
-      this.notifications.forEach(n => { n.isRead = true })
-      this.$message.success('全部标记已读成功 (假数据)')
-      this.fetchUnreadCount()
+      const response = await markAllNotificationsRead(this.userId)
+      const res = response.data // 统一解包
+      if (res && res.code === 200) {
+        this.notifications.forEach(n => { n.isRead = true })
+        this.$message.success(res.data || res.msg || '全部标记已读成功')
+        this.fetchUnreadCount()
+      } else {
+        this.$message.error(res?.msg || '全部标记已读失败')
+      }
     },
     handlePageChange(page) {
       this.pagination.page = page
@@ -211,6 +213,7 @@ export default {
     showDetail(row) {
       this.currentDetail = row
       this.detailDialogVisible = true
+      // 自动标记为已读
       if (!row.isRead) {
         this.markRead(row)
       }
@@ -236,9 +239,11 @@ export default {
         default: return 'default';
       }
     },
+    // WebSocket推送时可调用此方法自动刷新
     onNewNotification(msg) {
       this.fetchUnreadCount()
       this.loadNotifications()
+      // 新增：收到WebSocket推送时弹窗提示
       if (msg && msg.message) {
         this.$notify({
           title: msg.examName ? '考试通知' : '新消息',
@@ -251,34 +256,40 @@ export default {
     goLink(link) {
       if (!link) return;
       if (/^https?:\/\//.test(link)) {
+        // 外部链接，新窗口打开
         window.open(link, '_blank');
       } else {
-        this.$message.info('假跳转：' + link + ' (假数据)')
+        // 内部路由，跳转并关闭弹窗
+        this.$router.push(link);
         this.detailDialogVisible = false;
       }
     },
     async deleteNotificationRow(row) {
       this.$confirm('确定要删除这条消息吗？', '提示', { type: 'warning' })
         .then(async () => {
-          this.notifications = this.notifications.filter(n => n.notificationId !== row.notificationId)
-          this.pagination.total = this.notifications.length
-          this.$message.success('删除成功 (假数据)')
+          await deleteNotification(row.notificationId)
+          this.$message.success('删除成功')
+          this.loadNotifications()
         })
         .catch(() => {})
     },
     async deleteAllNotifications() {
       this.$confirm('确定要删除全部消息吗？', '提示', { type: 'warning' })
         .then(async () => {
-          this.notifications = []
-          this.pagination.total = 0
-          this.unreadCount = 0
-          this.$message.success('全部删除成功 (假数据)')
+          const res = await deleteAllNotificationsApi()
+          if (res.data.code === 200) {
+            this.$message.success('全部删除成功')
+            this.loadNotifications()
+          } else {
+            this.$message.error('全部删除失败')
+          }
         })
         .catch(() => {})
     }
   }
 }
 </script>
+
 <style scoped>
 .notification-page {
   width: 100%;

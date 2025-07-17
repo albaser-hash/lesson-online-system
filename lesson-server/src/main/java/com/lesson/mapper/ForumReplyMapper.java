@@ -2,6 +2,7 @@ package com.lesson.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lesson.entity.ForumReply;
+import com.lesson.entity.ForumTopics;
 import com.lesson.vo.ForumReplyDetailVO;
 import org.apache.ibatis.annotations.Select;
 

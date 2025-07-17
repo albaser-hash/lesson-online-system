@@ -1,9 +1,8 @@
 package com.lesson.dto;
 
 import lombok.Data;
-
 import java.io.Serializable;
-import java.util.List;
+import java.util.List; // 添加List的导入
 
 /**
  * 用户注册

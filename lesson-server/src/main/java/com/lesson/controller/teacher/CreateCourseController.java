@@ -1,10 +1,19 @@
 package com.lesson.controller.teacher;
 
-import com.lesson.dto.*;
+import com.lesson.dto.CreateChapterDTO;
+import com.lesson.dto.CreateCourseDTO;
+import com.lesson.dto.PageQueryDTO;
+import com.lesson.dto.UpdateCourseDTO;
 import com.lesson.result.PageResult;
 import com.lesson.result.Result;
 import com.lesson.service.CourseService;
-import com.lesson.vo.*;
+import com.lesson.vo.CreateChapterVO;
+import com.lesson.vo.CreateCourseVO;
+import com.lesson.vo.DetailCourseVO;
+import com.lesson.vo.ScanCourseVO;
+import com.lesson.vo.UpdateCourseVO;
+import com.lesson.vo.ChapterVO;
+import com.lesson.dto.UpdateChapterDTO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;

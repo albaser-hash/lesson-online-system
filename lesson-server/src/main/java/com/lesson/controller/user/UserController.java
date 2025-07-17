@@ -1,12 +1,16 @@
 package com.lesson.controller.user;
 
+import com.lesson.annotation.CheckPermission;
 import com.lesson.constant.JwtClaimsConstant;
 import com.lesson.context.BaseContext;
+import com.lesson.dto.PageQueryDTO;
 import com.lesson.dto.UpdatePasswordDTO;
 import com.lesson.dto.UserLoginDTO;
 import com.lesson.dto.UserRegisterDTO;
+import com.lesson.entity.QaQuestion;
 import com.lesson.entity.User;
 import com.lesson.properties.JwtProperties;
+import com.lesson.result.PageResult;
 import com.lesson.result.Result;
 import com.lesson.service.UserService;
 import com.lesson.utils.JwtUtil;
@@ -22,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static net.sf.jsqlparser.util.validation.metadata.NamedObject.user;
 
 @RestController
 @RequestMapping("/user")

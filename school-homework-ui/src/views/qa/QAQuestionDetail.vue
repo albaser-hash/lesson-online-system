@@ -46,7 +46,7 @@
         <el-timeline-item v-for="answer in answers" :key="answer.answerId" :timestamp="formatTime(answer.createTime)" placement="top">
           <div class="answer-row" :class="{'best-answer-row': answer.isBest === 1}">
             <img :src="getAvatarUrl(answer.avatar)" class="qa-avatar-img" @error="onAvatarError" />
-            <b class="answer-username">{{ answer.userName }}</b>
+            <b class="answer-username">{{ answer.userName }}</b>：
             <el-tag v-if="answer.isBest === 1" type="success" size="mini">最佳</el-tag>
             <div v-if="answer.userId === userId || userType === 'ADMIN'" class="answer-actions">
               <el-button type="text" size="mini" @click="handleEditAnswer(answer)"><i class="el-icon-edit"></i> 编辑</el-button>
@@ -69,6 +69,7 @@
         <el-button type="primary" class="submit-btn" @click="submitAnswer">提交回答</el-button>
       </div>
     </el-card>
+
     <el-dialog :visible.sync="editDialogVisible" title="编辑问题" width="500px" class="qa-dialog">
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="标题">
@@ -78,7 +79,7 @@
           <el-input type="textarea" v-model="editForm.questionContent" maxlength="500" rows="4" />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="editForm.tags" placeholder="用逗号分隔，如：高数,极限,数学基础" />
+          <el-input v-model="editForm.tags" placeholder="用逗号分隔，如：高数,极限" />
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -88,57 +89,17 @@
     </el-dialog>
   </div>
 </template>
+
 <script>
+import { getQuestionById, deleteQuestion, updateQuestion, setBestAnswer } from '@/api/questions'
+import { addAnswer, deleteAnswer, updateAnswer } from '@/api/answer'
 import { mapState } from 'vuex'
 export default {
   name: 'QAQuestionDetail',
   data() {
     return {
-      question: {
-        questionId: 1,
-        questionTitle: '如何理解高等数学中的极限概念？',
-        questionContent: '我在学习高等数学时，对极限这个概念感到很困惑。能否有老师或同学详细解释一下极限的定义、性质以及在实际问题中的应用？',
-        tags: '高等数学,极限,数学基础',
-        userId: 1,
-        userName: '数学学习者',
-        avatar: 'https://',
-        createTime: '2024-01-15 10:30:00'
-      },
-      answers: [
-        {
-          answerId: 1,
-          answerContent: '极限是高等数学的核心概念之一。简单来说，当自变量无限接近某个值时，函数值也无限接近某个确定的值，这个确定的值就是极限。',
-          userId: 2,
-          userName: '数学老师',
-          avatar: 'https://',
-          createTime: '2024-01-15 11:00:00',
-          isBest: 1,
-          isEditing: false,
-          editContent: ''
-        },
-        {
-          answerId: 2,
-          answerContent: '从几何角度理解，极限可以看作是函数图像在某个点的\"趋势\"。比如当x趋近于0时，sin(x)/x的极限是1，这表示在x=0附近，sin(x)和x的比值趋近于1。',
-          userId: 3,
-          userName: '数学爱好者',
-          avatar: 'https://',
-          createTime: '2024-01-15 11:30:00',
-          isBest: 0,
-          isEditing: false,
-          editContent: ''
-        },
-        {
-          answerId: 3,
-          answerContent: '极限在实际应用中有很多用途，比如在物理学中描述瞬时速度、瞬时加速度等概念，在经济学中描述边际效应等。',
-          userId: 4,
-          userName: '应用数学专家',
-          avatar: 'https://',
-          createTime: '2024-01-15 12:00:00',
-          isBest: 0,
-          isEditing: false,
-          editContent: ''
-        }
-      ],
+      question: {},
+      answers: [],
       newAnswer: '',
       editDialogVisible: false,
       editForm: {
@@ -162,9 +123,15 @@ export default {
   },
   methods: {
     fetchQuestion() {
-      setTimeout(() => {
-        this.$message.success('问题详情加载成功 (假数据)')
-      }, 300)
+      const id = this.$route.params.id
+      getQuestionById(id).then(res => {
+        if (res && res.data) {
+          this.question = res.data.data
+          this.answers = Array.isArray(res.data.data.answers) ? res.data.data.answers : []
+        }
+      }).catch(error => {
+        this.$message.error('加载问题详情失败，请重试')
+      })
     },
     formatTime(ts) {
       if (!ts) return ''
@@ -178,7 +145,7 @@ export default {
     },
     getAvatarUrl(avatar) {
       if (!avatar) return require('@/assets/images/profile.jpg')
-      if (/^https?:\/\//.test(avatar)) {
+      if (/^https?:\/\//.test(avatar) || avatar.startsWith('/')) {
         return avatar
       }
       return '/api/upload/' + avatar
@@ -191,28 +158,32 @@ export default {
         this.$message.error('回答内容不能为空')
         return
       }
-      setTimeout(() => {
-        const newAnswerObj = {
-          answerId: Date.now(),
+      try {
+        const payload = {
+          questionId: this.question.questionId,
           answerContent: this.newAnswer,
-          userId: this.userId || 1,
-          userName: this.name || this.userName || '当前用户',
-          avatar: this.avatar || 'https://',
-          createTime: new Date().toLocaleString(),
-          isBest: 0,
-          isEditing: false,
-          editContent: ''
+          userId: this.userId,
+          userName: this.name || this.userName,
+          avatar: this.avatar
         }
-        this.answers.push(newAnswerObj)
-        this.$message.success('回答成功 (假数据)')
+        await addAnswer(payload)
+        this.$message.success('回答成功')
         this.newAnswer = ''
-      }, 500)
+        this.fetchQuestion() // 刷新回答列表
+      } catch (e) {
+        this.$message.error('提交失败')
+      }
     },
     async deleteMyAnswer(answerId) {
       this.$confirm('确定要删除这条回答吗？', '提示', { type: 'warning' })
         .then(async () => {
-          this.answers = this.answers.filter(answer => answer.answerId !== answerId)
-          this.$message.success('删除成功 (假数据)')
+          try {
+            await deleteAnswer(answerId)
+            this.$message.success('删除成功')
+            this.fetchQuestion()
+          } catch (e) {
+            this.$message.error('删除失败')
+          }
         })
         .catch(() => {})
     },
@@ -227,13 +198,19 @@ export default {
         this.$message.error('请填写标题和内容')
         return
       }
-      setTimeout(() => {
-        this.question.questionTitle = this.editForm.questionTitle
-        this.question.questionContent = this.editForm.questionContent
-        this.question.tags = this.editForm.tags
-        this.$message.success('编辑成功 (假数据)')
+      updateQuestion({
+        questionId: this.question.questionId,
+        questionTitle: this.editForm.questionTitle,
+        questionContent: this.editForm.questionContent,
+        tags: this.editForm.tags,
+        userId: this.userId
+      }).then(() => {
+        this.$message.success('编辑成功')
         this.editDialogVisible = false
-      }, 500)
+        this.fetchQuestion()
+      }).catch(() => {
+        this.$message.error('编辑失败，请重试')
+      })
     },
     handleEditAnswer(answer) {
       this.$set(answer, 'isEditing', true)
@@ -244,27 +221,36 @@ export default {
         this.$message.error('回答内容不能为空')
         return
       }
-      setTimeout(() => {
+      updateAnswer({
+        answerId: answer.answerId,
+        answerContent: answer.editContent,
+        userId: this.userId
+      }).then(() => {
+        this.$message.success('编辑成功')
         this.$set(answer, 'answerContent', answer.editContent)
         this.$set(answer, 'isEditing', false)
-        this.$message.success('编辑成功 (假数据)')
-      }, 500)
+      }).catch(() => {
+        this.$message.error('编辑失败，请重试')
+      })
     },
     cancelEditAnswer(answer) {
       this.$set(answer, 'isEditing', false)
       this.$set(answer, 'editContent', '')
     },
     handleDeleteQuestion() {
-      this.$confirm('确定要删除这个问题吗？删除后所有回答也会被删除', '提示', {
+      this.$confirm('确定要删除这个问题吗？删除后所有回答也会被删除。', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        setTimeout(() => {
-          this.$message.success('删除成功 (假数据)')
+        deleteQuestion(this.question.questionId).then(() => {
+          this.$message.success('删除成功')
           this.$router.push('/qa')
-        }, 500)
+        }).catch(() => {
+          this.$message.error('删除失败，请重试')
+        })
       }).catch(() => {
+        // 用户取消删除
       })
     },
     goHome() {
@@ -273,12 +259,9 @@ export default {
     async setBest(answerId) {
       try {
         await this.$confirm('确定要将这条回答设为最佳回答吗？', '提示', { type: 'warning' })
-        setTimeout(() => {
-          this.answers.forEach(answer => {
-            answer.isBest = answer.answerId === answerId ? 1 : 0
-          })
-          this.$message.success('设置成功 (假数据)')
-        }, 500)
+        await setBestAnswer(this.question.questionId, answerId)
+        this.$message.success('设置成功')
+        this.fetchQuestion()
       } catch (e) {
         if (e !== 'cancel') {
           this.$message.error('设置失败')
@@ -288,6 +271,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .qa-detail-page {
   padding: 20px;
@@ -470,41 +454,50 @@ export default {
   .qa-detail-page {
     padding: 8px;
   }
+  
   .header-content {
     flex-direction: column;
     text-align: center;
     padding: 16px;
   }
+  
   .back-btn {
     width: 100%;
     margin-bottom: 10px;
     justify-content: center;
   }
+  
   .question-card, .answer-card {
     border-radius: 10px;
     padding: 8px;
   }
+  
   .question-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
+  
   .question-title {
     font-size: 18px;
     line-height: 1.4;
   }
+  
   .question-actions {
     width: 100%;
     justify-content: flex-end;
   }
+  
   .answer-header {
     font-size: 16px;
   }
+  
   .question-meta-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
+  
   .answer-row {
     display: flex;
     flex-direction: row;
@@ -518,11 +511,13 @@ export default {
     width: 100%;
     flex-wrap: wrap;
   }
+  
   .answer-username {
     font-size: 15px;
     margin-top: 0;
     white-space: nowrap;
   }
+  
   .answer-content {
     font-size: 15px;
     line-height: 1.7;
@@ -532,6 +527,7 @@ export default {
     width: auto;
     flex: 1 1 100%;
   }
+  
   .answer-actions {
     margin: 0;
     width: auto;
@@ -539,135 +535,175 @@ export default {
     gap: 8px;
     justify-content: flex-end;
   }
+  
   .qa-avatar-img {
     width: 28px;
     height: 28px;
     margin-bottom: 2px;
   }
+  
   .el-timeline-item__timestamp {
     font-size: 12px !important;
     color: #bbb !important;
     margin-bottom: 2px;
   }
+  
+  /* 对话框响应式 */
   .qa-dialog ::v-deep .el-dialog {
     width: 95% !important;
     margin: 5vh auto !important;
   }
+  
   .qa-dialog ::v-deep .el-dialog__body {
     padding: 16px;
   }
+  
   .qa-dialog ::v-deep .el-form-item {
     margin-bottom: 16px;
   }
+  
   .qa-dialog ::v-deep .el-form-item__label {
     line-height: 1.5;
     padding-bottom: 8px;
   }
+  
   .qa-dialog ::v-deep .el-input,
   .qa-dialog ::v-deep .el-textarea {
     font-size: 14px;
   }
+  
   .qa-dialog ::v-deep .el-textarea__inner {
     min-height: 80px;
   }
+  
+  /* 回答输入框响应式 */
   .answer-input-box {
     margin-top: 16px;
   }
+  
   .answer-input-box ::v-deep .el-textarea__inner {
     font-size: 14px;
     min-height: 80px;
   }
+  
   .submit-btn {
     padding: 8px 16px;
     font-size: 13px;
   }
 }
+
 @media (max-width: 480px) {
   .qa-detail-page {
     padding: 6px;
   }
+  
   .header-content {
     padding: 12px;
   }
+  
   .question-card, .answer-card {
     padding: 6px;
   }
+  
   .question-title {
     font-size: 16px;
   }
+  
   .question-content {
     font-size: 14px;
     line-height: 1.6;
   }
+  
   .question-tags {
     font-size: 12px;
   }
+  
   .question-time {
     font-size: 12px;
   }
+  
   .answer-header {
     font-size: 14px;
   }
+  
   .answer-content {
     font-size: 13px;
     line-height: 1.6;
   }
+  
   .answer-username {
     font-size: 13px;
   }
+  
   .qa-avatar-img {
     width: 24px;
     height: 24px;
   }
+  
   .answer-row {
     padding: 8px 6px;
     gap: 4px;
   }
+  
   .answer-actions {
     gap: 4px;
   }
+  
   .edit-btn, .delete-btn {
     padding: 4px 8px;
     font-size: 11px;
   }
+  
+  /* 对话框进一步优化 */
   .qa-dialog ::v-deep .el-dialog {
     width: 98% !important;
     margin: 2vh auto !important;
   }
+  
   .qa-dialog ::v-deep .el-dialog__header {
     padding: 12px 16px;
   }
+  
   .qa-dialog ::v-deep .el-dialog__title {
     font-size: 16px;
   }
+  
   .qa-dialog ::v-deep .el-dialog__body {
     padding: 12px;
   }
+  
   .qa-dialog ::v-deep .el-form-item__label {
     font-size: 13px;
     padding-bottom: 6px;
   }
+  
   .qa-dialog ::v-deep .el-input__inner,
   .qa-dialog ::v-deep .el-textarea__inner {
     font-size: 13px;
     padding: 8px 12px;
   }
+  
   .qa-dialog ::v-deep .el-textarea__inner {
     min-height: 60px;
   }
+  
   .qa-dialog ::v-deep .el-dialog__footer {
     padding: 12px 16px;
   }
+  
+  /* 回答输入框进一步优化 */
   .answer-input-box ::v-deep .el-textarea__inner {
     font-size: 13px;
     padding: 8px 12px;
     min-height: 60px;
   }
+  
   .submit-btn {
     padding: 6px 12px;
     font-size: 12px;
     margin-left: 8px;
   }
+  
   .back-btn {
     padding: 8px 16px;
     font-size: 13px;

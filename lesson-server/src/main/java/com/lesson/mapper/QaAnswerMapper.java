@@ -5,7 +5,6 @@ import com.lesson.entity.QaAnswer;
 import com.lesson.vo.QaAnswerDetailVO;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-
 import java.util.List;
 
 public interface QaAnswerMapper extends BaseMapper<QaAnswer> {

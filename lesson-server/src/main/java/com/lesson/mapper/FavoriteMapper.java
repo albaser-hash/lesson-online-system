@@ -1,6 +1,7 @@
 package com.lesson.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.lesson.entity.Chapter;
 import com.lesson.entity.Favorite;
 
 

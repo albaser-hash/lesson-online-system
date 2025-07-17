@@ -3,6 +3,7 @@ package com.lesson.dto;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 用户注册

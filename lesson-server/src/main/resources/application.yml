@@ -70,10 +70,10 @@ storage:
   type: oss # 可选 minio 或 oss
   oss:
     #endpoint: https://oss-cn-beijing.aliyuncs.com #上线才使用，不然会有跨域问题
-    endpoint: 111
-    accessKeyId: L111
-    accessKeySecret: 111
-    bucketName: 111
+    endpoint: xxxxxx
+    accessKeyId: xxxxx
+    accessKeySecret: xxxx
+    bucketName: xxxxx
   minio:
     endpoint:
     accessKey:

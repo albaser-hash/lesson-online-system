@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
  * jwt令牌校验的拦截器
  */
 @Component
-
+@Slf4j
 public class JwtTokenUserInterceptor implements HandlerInterceptor {
 
     @Autowired
@@ -51,7 +51,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             BaseContext.setCurrentId(userId);
             return true;
         } catch (Exception ex) {
-           // log.error("JWT拦截器 - Token校验失败: {}", ex.getMessage());
+            log.error("JWT拦截器 - Token校验失败: {}", ex.getMessage());
             response.setStatus(401);
             return false;
         }

@@ -3,6 +3,7 @@ package com.lesson.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lesson.dto.SubmitPaperDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,7 +36,7 @@ public class Paper implements Serializable {
     private Integer finalScore; // 最终分数，老师批改后才有
     private Boolean isReviewed; // 是否已批改，0未批改，1已批改
     private Timestamp reviewTime; // 老师批改时间
-    private List<AnswerItem> answer;
+    private List<Paper.AnswerItem> answer;
     @Data
     public static class AnswerItem {
         private Integer questionId;

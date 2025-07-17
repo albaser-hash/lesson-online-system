@@ -1,10 +1,13 @@
 package com.lesson.controller.student;
 
 import com.lesson.dto.LearnProcessDTO;
+import com.lesson.dto.PageQueryDTO;
+import com.lesson.result.PageResult;
 import com.lesson.result.Result;
 import com.lesson.service.CourseService;
 import com.lesson.service.LearnService;
 import com.lesson.service.OrderService;
+import com.lesson.vo.ScanCourseVO;
 import com.lesson.vo.DetailCourseVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

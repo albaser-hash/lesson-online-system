@@ -2,6 +2,7 @@ package com.lesson.service;
 
 import com.lesson.dto.UserLoginDTO;
 import com.lesson.dto.UserRegisterDTO;
+import com.lesson.dto.UserRegisterDTO;
 import com.lesson.entity.Chapter;
 import com.lesson.entity.User;
 

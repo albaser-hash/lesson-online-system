@@ -2,20 +2,20 @@ package com.lesson.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lesson.dto.CreateExamDTO;
-import com.lesson.dto.ReviewDTO;
-import com.lesson.dto.SubmitExamDTO;
-import com.lesson.dto.UpdateExamDTO;
+import com.lesson.dto.*;
 import com.lesson.entity.*;
 import com.lesson.mapper.*;
+import com.lesson.result.PageResult;
 import com.lesson.result.Result;
+import com.lesson.service.CourseService;
 import com.lesson.service.ExamService;
-import com.lesson.vo.ExamDetailVO;
-import com.lesson.vo.ExamVO;
+import com.lesson.vo.*;
 import com.lesson.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.lesson.context.BaseContext.getCurrentId;
@@ -426,7 +430,7 @@ public Result<String> submitExam(SubmitExamDTO submitExamDTO, Integer userId) {
                 
                 List<Integer> teacherIds = java.util.Collections.singletonList(teacherId);
                 String reviewMsg = "有新的主观题需要您批改，请及时处理。";
-                WebSocketServer.sendReviewNotificationToUsers(teacherIds, examName, reviewMsg);
+                com.lesson.websocket.WebSocketServer.sendReviewNotificationToUsers(teacherIds, examName, reviewMsg);
             }
         }
 
@@ -821,11 +825,11 @@ public ExamDetailVO getExamResult(Integer examId, Integer userId) {
         // 查出该老师所有考试ID
         List<Exam> exams = examMapper.selectList(new QueryWrapper<Exam>().eq("teacher_id", teacherId));
         if (exams.isEmpty()) return 0;
-        List<Integer> examIds = exams.stream().map(Exam::getExamId).collect(Collectors.toList());
+        List<Integer> examIds = exams.stream().map(Exam::getExamId).collect(java.util.stream.Collectors.toList());
         // 删除所有答卷
         examPaperMapper.delete(new QueryWrapper<com.lesson.entity.ExamPaper>().in("exam_id", examIds));
         // 删除所有题目
-        examQuestionMapper.delete(new QueryWrapper<ExamQuestion>().in("exam_id", examIds));
+        examQuestionMapper.delete(new QueryWrapper<com.lesson.entity.ExamQuestion>().in("exam_id", examIds));
         // 删除所有相关通知（type='EXAM'且content包含考试名）
         for (Exam exam : exams) {
             notificationMapper.delete(new QueryWrapper<com.lesson.entity.Notification>()

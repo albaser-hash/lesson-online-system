@@ -1,33 +1,31 @@
 <template>
   <div class="qa-page">
-    <!-- 通用导航栏 -->
-    <CommonNav activeIndex="qa" />
-    
-    <div class="page-content">
-      <div class="page-header">
-        <div class="header-content">
-          <div class="title-section">
-            <h2>问答社区</h2>
-            <p>在这里提问和回答问题</p>
-          </div>
-          <div class="header-actions">
-            <el-button type="primary" @click="askDialogVisible=true" class="ask-btn">
-              <i class="el-icon-edit"></i>
-              我要提问
-            </el-button>
-            <el-button @click="goHome" class="back-btn">
-              <i class="el-icon-back"></i>
-              返回主页
-            </el-button>
-          </div>
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h2>问答社区</h2>
+          <p>在这里提问和回答问题</p>
+        </div>
+        <div class="header-actions">
+          <el-button type="primary" @click="askDialogVisible=true" class="ask-btn">
+            <i class="el-icon-edit"></i>
+            我要提问
+          </el-button>
+          <el-button @click="goHome" class="back-btn">
+            <i class="el-icon-back"></i>
+            返回主页
+          </el-button>
         </div>
       </div>
+    </div>
+
     <el-card class="qa-card">
       <div v-if="questions.length === 0" class="empty-state">
         <i class="el-icon-chat-dot-round empty-icon"></i>
         <p>暂无问题，快来提问吧！</p>
         <el-button type="primary" @click="askDialogVisible=true">我要提问</el-button>
       </div>
+
       <el-table v-else :data="questions" border style="width: 100%;" class="qa-table" @row-click="viewDetail">
         <el-table-column prop="questionTitle" label="标题" min-width="400">
           <template slot-scope="scope">
@@ -43,6 +41,7 @@
             </div>
           </template>
         </el-table-column>
+
         <el-table-column prop="tags" label="标签" width="150">
           <template slot-scope="scope">
             <el-tag v-for="tag in getTags(scope.row.tags)" :key="tag" size="small" type="info" style="margin-right: 4px;">
@@ -83,12 +82,13 @@
           </template>
         </el-table-column>
       </el-table>
+
       <!-- 分页 -->
       <div class="pagination-container" v-if="questions.length > 0">
         <div class="pagination-wrapper">
           <div class="pagination-info">
-            <span class="total-info">共{{ total }}条</span>
-            <span class="page-info">第{{ page }} / {{ Math.ceil(total / pageSize) }}页</span>
+            <span class="total-info">共 {{ total }} 条</span>
+            <span class="page-info">第 {{ page }} / {{ Math.ceil(total / pageSize) }} 页</span>
           </div>
           <div class="pagination-controls">
             <el-button 
@@ -100,6 +100,7 @@
               <i class="el-icon-arrow-left"></i>
               上一页
             </el-button>
+            
             <div class="page-numbers" v-if="!isMobile">
               <el-button 
                 v-for="pageNum in visiblePages" 
@@ -111,6 +112,7 @@
                 {{ pageNum }}
               </el-button>
             </div>
+            
             <div class="page-numbers mobile" v-else>
               <el-button 
                 v-for="pageNum in mobileVisiblePages" 
@@ -122,6 +124,7 @@
                 {{ pageNum }}
               </el-button>
             </div>
+            
             <el-button 
               :disabled="page >= Math.ceil(total / pageSize)" 
               @click="handleCurrentChange(page + 1)"
@@ -131,7 +134,8 @@
               下一页
               <i class="el-icon-arrow-right"></i>
             </el-button>
-            <!-- PC端跳转功能-->
+            
+            <!-- PC端跳转功能 -->
             <div class="jump-to-page" v-if="!isMobile">
               <span class="jump-text">跳转到</span>
               <el-input
@@ -154,7 +158,8 @@
         </div>
       </div>
     </el-card>
-    <!-- 提问对话框-->
+
+    <!-- 提问对话框 -->
     <el-dialog :visible.sync="askDialogVisible" title="我要提问" width="500px" class="ask-dialog">
       <el-form :model="askForm" label-width="80px">
         <el-form-item label="标题">
@@ -164,7 +169,7 @@
           <el-input type="textarea" v-model="askForm.question_content" maxlength="500" rows="4" placeholder="请详细描述您的问题" />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="askForm.tags" placeholder="用逗号分隔，如：高等数学,极限" />
+          <el-input v-model="askForm.tags" placeholder="用逗号分隔，如：高数,极限" />
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -172,7 +177,8 @@
         <el-button type="primary" @click="submitAsk" class="submit-btn">提交</el-button>
       </div>
     </el-dialog>
-    <!-- 编辑对话框-->
+
+    <!-- 编辑对话框 -->
     <el-dialog :visible.sync="editDialogVisible" title="编辑问题" width="500px" class="edit-dialog">
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="标题">
@@ -182,7 +188,7 @@
           <el-input type="textarea" v-model="editForm.question_content" maxlength="500" rows="4" placeholder="请详细描述您的问题" />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="editForm.tags" placeholder="用逗号分隔，如：高等数学,极限" />
+          <el-input v-model="editForm.tags" placeholder="用逗号分隔，如：高数,极限" />
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -190,41 +196,18 @@
         <el-button type="primary" @click="submitEdit" class="submit-btn">保存</el-button>
       </div>
     </el-dialog>
-    </div>
   </div>
 </template>
 <script>
+import { getQuestionList, addQuestion, deleteQuestion, updateQuestion } from '@/api/questions'
 import { mapState } from 'vuex'
-import CommonNav from '@/components/CommonNav.vue'
 
 export default {
   name: 'QA',
-  components: {
-    CommonNav
-  },
   data() {
     return {
-      questions: [
-        {
-          questionId: 1,
-          questionTitle: 'Vue组件通信有哪些方式？',
-          questionContent: '请详细说明Vue组件之间的通信方式。',
-          tags: 'Vue,组件,通信',
-          userName: '小明',
-          createTime: '2024-01-10 14:30:00',
-          answerCount: 3
-        },
-        {
-          questionId: 2,
-          questionTitle: 'React和Vue的区别是什么？',
-          questionContent: 'React和Vue在设计理念和使用上有哪些主要区别？',
-          tags: 'React,Vue,对比',
-          userName: '小红',
-          createTime: '2024-01-12 09:15:00',
-          answerCount: 2
-        }
-      ],
-      total: 2,
+      questions: [],
+      total: 0,
       page: 1,
       pageSize: 10,
       askDialogVisible: false,
@@ -253,6 +236,7 @@ export default {
       const totalPages = Math.ceil(this.total / this.pageSize)
       const currentPage = this.page
       const pages = []
+      
       if (totalPages <= 10) {
         for (let i = 1; i <= totalPages; i++) {
           pages.push(i)
@@ -280,12 +264,14 @@ export default {
           pages.push(totalPages)
         }
       }
+      
       return pages
     },
     mobileVisiblePages() {
       const totalPages = Math.ceil(this.total / this.pageSize)
       const currentPage = this.page
       const pages = []
+      
       if (totalPages <= 3) {
         for (let i = 1; i <= totalPages; i++) {
           pages.push(i)
@@ -305,6 +291,7 @@ export default {
           pages.push(currentPage + 1)
         }
       }
+      
       return pages
     }
   },
@@ -313,7 +300,18 @@ export default {
       this.$router.push('/')
     },
     fetchQuestions() {
-      this.$message.success('加载问题列表（假数据）')
+      getQuestionList({
+        page: this.page,
+        pageSize: this.pageSize
+      }).then(res => {
+        if (res && res.data) {
+          const records = res.data.data.records || res.data.data.list || []
+          this.questions = records // 直接使用后端字段
+          this.total = Number(res.data.data.total)
+        }
+      }).catch(error => {
+        this.$message.error('加载问题失败，请重试')
+      })
     },
     formatTime(ts) {
       if (!ts) return ''
@@ -343,10 +341,14 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.$message.success('删除成功（假数据）')
-        this.questions = this.questions.filter(q => q.questionId !== row.questionId)
-        this.total = this.questions.length
+        deleteQuestion(row.questionId).then(() => {
+          this.$message.success('删除成功')
+          this.fetchQuestions()
+        }).catch(() => {
+          this.$message.error('删除失败，请重试')
+        })
       }).catch(() => {
+        // 用户取消删除
       })
     },
     submitAsk() {
@@ -354,20 +356,22 @@ export default {
         this.$message.error('请填写标题和内容')
         return
       }
-      this.$message.success('提问成功（假数据）')
-      this.askDialogVisible = false
-      this.questions.unshift({
-        questionId: Date.now(),
+      addQuestion({
+        userId: this.$store.state.user.id,
         questionTitle: this.askForm.question_title,
         questionContent: this.askForm.question_content,
-        tags: this.askForm.tags,
-        userName: '假用户',
-        createTime: new Date().toLocaleString(),
-        answerCount: 0
+        tags: this.askForm.tags
+      }).then(res => {
+        this.$message.success('提问成功')
+        this.askDialogVisible = false
+        this.askForm = { question_title: '', question_content: '', tags: '' }
+        this.page = 1
+        this.fetchQuestions()
+        // 如需跳转到详情页可解开下面注释
+        // if (res && res.data && res.data.id) {
+        //   this.$router.push(`/qa/${res.data.id}`)
+        // }
       })
-      this.total = this.questions.length
-      this.askForm = { question_title: '', question_content: '', tags: '' }
-      this.page = 1
     },
     handleEditQuestion(row) {
       this.editForm = {
@@ -383,15 +387,20 @@ export default {
         this.$message.error('请填写标题和内容')
         return
       }
-      this.$message.success('编辑成功（假数据）')
-      const idx = this.questions.findIndex(q => q.questionId === this.currentEditId)
-      if (idx > -1) {
-        this.questions[idx].questionTitle = this.editForm.question_title
-        this.questions[idx].questionContent = this.editForm.question_content
-        this.questions[idx].tags = this.editForm.tags
-      }
-      this.editDialogVisible = false
-      this.currentEditId = null
+      updateQuestion({
+        questionId: this.currentEditId,
+        questionTitle: this.editForm.question_title,
+        questionContent: this.editForm.question_content,
+        tags: this.editForm.tags,
+        userId: this.currentUserId
+      }).then(() => {
+        this.$message.success('编辑成功')
+        this.editDialogVisible = false
+        this.currentEditId = null
+        this.fetchQuestions()
+      }).catch(() => {
+        this.$message.error('编辑失败，请重试')
+      })
     },
     getTags(tags) {
       if (!tags) return []
@@ -399,7 +408,7 @@ export default {
     },
     getAvatarUrl(avatar) {
       if (!avatar) return require('@/assets/images/profile.jpg')
-      if (/^https?:\/\//.test(avatar)) {
+      if (/^https?:\/\//.test(avatar) || avatar.startsWith('/')) {
         return avatar
       }
       return '/api/upload/' + avatar
@@ -432,21 +441,19 @@ export default {
 </script>
 <style scoped>
 .qa-page {
+  padding: 20px;
   min-height: 100vh;
   background: linear-gradient(135deg, #ffe4ec 0%, #ffd6e6 100%);
 }
 
-.page-content {
-  padding: 80px 20px 20px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
 .qa-page ::v-deep .el-table__row {
   cursor: pointer;
 }
+
 .qa-page ::v-deep .el-table__row:hover {
   background-color: #fff5f8 !important;
 }
+
 .qa-title-cell {
   display: flex;
   flex-direction: column;
@@ -498,9 +505,11 @@ export default {
 .qa-table /deep/ .el-table__row:hover {
   background: #f5f7fa !important;
 }
+
 .page-header {
   margin-bottom: 20px;
 }
+
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -510,20 +519,24 @@ export default {
   border-radius: 16px;
   box-shadow: 0 4px 16px #f0c1d6cc;
 }
+
 .header-content > * {
   margin-bottom: 15px;
 }
+
 .title-section h2 {
   margin: 0 0 8px 0;
   color: #ff5c8a;
   font-size: 28px;
   font-weight: bold;
 }
+
 .title-section p {
   margin: 0;
   color: #888;
   font-size: 14px;
 }
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -546,6 +559,7 @@ export default {
 .ask-btn i, .back-btn i {
   margin-right: 5px;
 }
+
 .qa-card {
   background: #fff;
   border-radius: 16px;
@@ -553,22 +567,26 @@ export default {
   border: none;
   overflow: hidden;
 }
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
   color: #888;
 }
+
 .empty-icon {
   font-size: 60px;
   color: #ffb6d5;
   margin-bottom: 20px;
   display: block;
 }
+
 .empty-state p {
   font-size: 16px;
   margin-bottom: 20px;
   color: #666;
 }
+
 .empty-state .el-button {
   background: #ffb6d5;
   border-color: #ffb6d5;
@@ -577,35 +595,43 @@ export default {
   border-radius: 12px;
   padding: 12px 24px;
 }
+
 .empty-state .el-button:hover {
   background: #ff5c8a;
   border-color: #ff5c8a;
 }
+
 .qa-table {
   border-radius: 12px;
   overflow: hidden;
 }
+
 .qa-table ::v-deep .el-table__header-wrapper {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
 }
+
 .qa-table ::v-deep .el-table__header th {
   background: transparent;
   color: #ff5c8a;
   font-weight: bold;
   border-bottom: 2px solid #ffb6d5;
 }
+
 .qa-table ::v-deep .el-table__body td {
   border-bottom: 1px solid #ffe4ec;
 }
+
 .answer-count {
   color: #ff5c8a;
   font-weight: bold;
   font-size: 14px;
 }
+
 .time-text {
   color: #888;
   font-size: 12px;
 }
+
 .edit-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -614,18 +640,22 @@ export default {
   border-radius: 8px;
   margin-right: 8px;
 }
+
 .edit-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .delete-btn {
   border-radius: 8px;
   font-weight: bold;
 }
+
 .pagination-container {
   margin-top: 20px;
   padding: 20px 0;
 }
+
 .pagination-wrapper {
   display: flex;
   justify-content: space-between;
@@ -636,33 +666,40 @@ export default {
   box-shadow: 0 2px 8px rgba(255, 182, 213, 0.1);
   border: 1px solid #ffe4ec;
 }
+
 .pagination-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .total-info {
   font-size: 14px;
   color: #666;
   font-weight: 500;
 }
+
 .page-info {
   font-size: 12px;
   color: #999;
 }
+
 .pagination-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .page-numbers {
   display: flex;
   align-items: center;
   gap: 4px;
 }
+
 .page-numbers.mobile {
   gap: 2px;
 }
+
 .page-btn {
   min-width: 36px;
   height: 36px;
@@ -676,42 +713,50 @@ export default {
   align-items: center;
   justify-content: center;
 }
+
 .page-btn:hover {
   border-color: #ffb6d5;
   color: #ff5c8a;
   background: #fff5f8;
 }
+
 .page-btn.active {
   background: linear-gradient(135deg, #ffb6d5, #ff5c8a);
   border-color: #ff5c8a;
   color: #fff;
   box-shadow: 0 2px 8px rgba(255, 182, 213, 0.3);
 }
+
 .page-btn:disabled {
   background: #f5f7fa;
   border-color: #e4e7ed;
   color: #c0c4cc;
   cursor: not-allowed;
 }
+
 .page-btn:disabled:hover {
   background: #f5f7fa;
   border-color: #e4e7ed;
   color: #c0c4cc;
 }
+
 .prev-btn, .next-btn {
   padding: 0 12px;
   min-width: 80px;
   font-size: 13px;
 }
+
 .prev-btn i, .next-btn i {
   margin: 0 4px;
 }
+
 .ask-dialog ::v-deep .el-dialog__header,
 .edit-dialog ::v-deep .el-dialog__header {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
   color: #ff5c8a;
   font-weight: bold;
 }
+
 .submit-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -720,10 +765,12 @@ export default {
   border-radius: 12px;
   padding: 10px 20px;
 }
+
 .submit-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .forum-list-row {
   display: flex;
   align-items: center;
@@ -746,20 +793,24 @@ export default {
   font-weight: bold;
   margin-left: 8px;
 }
+
 .jump-to-page {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-left: 16px;
 }
+
 .jump-text {
   font-size: 12px;
   color: #666;
   white-space: nowrap;
 }
+
 .jump-input {
   width: 60px;
 }
+
 .jump-input ::v-deep .el-input__inner {
   text-align: center;
   padding: 0 8px;
@@ -769,6 +820,7 @@ export default {
   border-radius: 8px;
   border: 1px solid #e4e7ed;
 }
+
 .jump-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -781,219 +833,277 @@ export default {
   line-height: 36px;
   min-width: 50px;
 }
+
 .jump-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 @media (max-width: 768px) {
   .qa-page {
     padding: 10px;
   }
+
   .header-content {
     flex-direction: column;
     text-align: center;
     padding: 16px;
   }
+
   .header-content > * {
     margin-bottom: 15px;
   }
+
   .title-section h2 {
     font-size: 24px;
   }
+
   .header-actions {
     flex-direction: column;
     width: 100%;
     gap: 8px;
   }
+
   .ask-btn, .back-btn {
     width: 100%;
     justify-content: center;
   }
+
   .qa-table ::v-deep .el-table {
     font-size: 12px;
   }
+
   .qa-table ::v-deep .el-table th,
   .qa-table ::v-deep .el-table td {
     padding: 8px 4px;
   }
+
   .qa-title-cell {
     gap: 2px;
     padding: 4px 0;
     min-width: 180px;
   }
+  
   .qa-avatar-img {
     width: 22px;
     height: 22px;
   }
+  
   .user-name {
     font-size: 12px;
   }
+  
   .qa-title-link {
     font-size: 15px;
     color: #ff5c8a;
   }
+  
   .forum-list-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
+  
   .forum-list-avatar {
     width: 24px;
     height: 24px;
   }
+  
   .forum-list-username {
     font-size: 12px;
   }
+  
   .topic-title {
     font-size: 14px;
     margin-left: 0;
     margin-top: 5px;
   }
+  
+  /* 对话框响应式 */
   .ask-dialog ::v-deep .el-dialog,
   .edit-dialog ::v-deep .el-dialog {
     width: 95% !important;
     margin: 5vh auto !important;
   }
+  
   .ask-dialog ::v-deep .el-dialog__body,
   .edit-dialog ::v-deep .el-dialog__body {
     padding: 16px;
   }
+  
   .ask-dialog ::v-deep .el-form-item,
   .edit-dialog ::v-deep .el-form-item {
     margin-bottom: 16px;
   }
+  
   .ask-dialog ::v-deep .el-form-item__label,
   .edit-dialog ::v-deep .el-form-item__label {
     line-height: 1.5;
     padding-bottom: 8px;
   }
+  
   .ask-dialog ::v-deep .el-input,
   .edit-dialog ::v-deep .el-input {
     font-size: 14px;
   }
+  
   .ask-dialog ::v-deep .el-textarea__inner,
   .edit-dialog ::v-deep .el-textarea__inner {
     font-size: 14px;
     min-height: 80px;
   }
+  
+  /* 分页响应式 */
   .pagination-wrapper {
     flex-direction: column;
     gap: 16px;
     padding: 12px 16px;
   }
+  
   .pagination-info {
     text-align: center;
   }
+  
   .pagination-controls {
     width: 100%;
     justify-content: center;
   }
+  
   .page-btn {
     min-width: 32px;
     height: 32px;
     font-size: 12px;
   }
+  
   .prev-btn, .next-btn {
     min-width: 70px;
     font-size: 12px;
     padding: 0 8px;
   }
 }
+
 @media (max-width: 480px) {
   .qa-page {
     padding: 8px;
   }
+  
   .header-content {
     padding: 12px;
   }
+  
   .title-section h2 {
     font-size: 20px;
   }
+  
   .title-section p {
     font-size: 12px;
   }
+  
   .qa-table ::v-deep .el-table {
     font-size: 11px;
   }
+  
   .qa-table ::v-deep .el-table th,
   .qa-table ::v-deep .el-table td {
     padding: 6px 2px;
   }
+  
   .qa-title-cell {
     min-width: 150px;
   }
+  
   .qa-title-link {
     font-size: 13px;
   }
+  
   .user-name {
     font-size: 11px;
   }
+  
   .qa-avatar-img {
     width: 20px;
     height: 20px;
   }
+  
   .answer-count {
     font-size: 12px;
   }
+  
   .time-text {
     font-size: 11px;
   }
+  
   .edit-btn, .delete-btn {
     padding: 4px 8px;
     font-size: 11px;
   }
+  
+  /* 对话框进一步优化 */
   .ask-dialog ::v-deep .el-dialog,
   .edit-dialog ::v-deep .el-dialog {
     width: 98% !important;
     margin: 2vh auto !important;
   }
+  
   .ask-dialog ::v-deep .el-dialog__header,
   .edit-dialog ::v-deep .el-dialog__header {
     padding: 12px 16px;
   }
+  
   .ask-dialog ::v-deep .el-dialog__title,
   .edit-dialog ::v-deep .el-dialog__title {
     font-size: 16px;
   }
+  
   .ask-dialog ::v-deep .el-dialog__body,
   .edit-dialog ::v-deep .el-dialog__body {
     padding: 12px;
   }
+  
   .ask-dialog ::v-deep .el-form-item__label,
   .edit-dialog ::v-deep .el-form-item__label {
     font-size: 13px;
     padding-bottom: 6px;
   }
+  
   .ask-dialog ::v-deep .el-input__inner,
   .edit-dialog ::v-deep .el-input__inner {
     font-size: 13px;
     padding: 8px 12px;
   }
+  
   .ask-dialog ::v-deep .el-textarea__inner,
   .edit-dialog ::v-deep .el-textarea__inner {
     font-size: 13px;
     padding: 8px 12px;
     min-height: 60px;
   }
+  
   .ask-dialog ::v-deep .el-dialog__footer,
   .edit-dialog ::v-deep .el-dialog__footer {
     padding: 12px 16px;
   }
+  
   .submit-btn {
     padding: 8px 16px;
     font-size: 13px;
   }
+  
+  /* 空状态响应式 */
   .empty-state {
     padding: 40px 16px;
   }
+  
   .empty-icon {
     font-size: 40px;
     margin-bottom: 16px;
   }
+  
   .empty-state p {
     font-size: 14px;
     margin-bottom: 16px;
   }
+  
   .empty-state .el-button {
     padding: 10px 20px;
     font-size: 13px;

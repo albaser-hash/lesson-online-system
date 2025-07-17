@@ -19,7 +19,8 @@
       <el-select v-model="selectedExamId" placeholder="选择考试" @change="loadPapers" class="exam-select">
         <el-option v-for="exam in examList" :key="exam.examId" :label="exam.examName" :value="exam.examId" />
       </el-select>
-      <!-- PC端表�?-->
+
+      <!-- PC端表格 -->
       <el-table v-if="!isMobile" :data="paperList" v-loading="loading" class="paper-table">
         <el-table-column prop="paperId" label="试卷ID" width="100" />
         <el-table-column prop="userId" label="学生" width="200">
@@ -41,7 +42,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <!-- 移动端卡�?-->
+
+      <!-- 移动端卡片 -->
       <div v-else class="paper-cards">
         <div v-for="paper in paperList" :key="paper.paperId" class="paper-card">
           <div class="paper-card-header">
@@ -50,17 +52,18 @@
               批改
             </el-button>
           </div>
+
           <div class="paper-card-content">
             <div class="paper-info-row">
-              <span class="info-label">学生</span>
+              <span class="info-label">学生：</span>
               <span class="info-value">{{ userNameMap[paper.userId] || paper.userId }}</span>
             </div>
             <div class="paper-info-row">
-              <span class="info-label">ID</span>
+              <span class="info-label">ID：</span>
               <span class="info-value student-id">{{ paper.userId }}</span>
             </div>
             <div class="paper-info-row">
-              <span class="info-label">提交</span>
+              <span class="info-label">提交：</span>
               <span class="info-value submit-time">{{ formatTime(paper.submitTime) }}</span>
             </div>
           </div>
@@ -81,7 +84,7 @@
               type="number"
               :max="q.score"
               :min="0"
-              :placeholder="`得分（最�?{q.score}）`"
+              :placeholder="`得分（最高${q.score}）`"
               @input="onScoreInput(q)"
               class="score-input pink-input"
             />
@@ -101,7 +104,7 @@
 </template>
 <script>
 import { getExamList, getReviewPapers, getPaperDetail, submitReview } from '@/api/exam'
-
+import { getUserName } from '@/api/user'
 export default {
   name: 'ReviewPapers',
   data() {
@@ -128,7 +131,7 @@ export default {
   methods: {
     async loadExams() {
       const response = await getExamList()
-      const res = response.data
+      const res = response.data // 统一解包
       if (res && res.code === 200 && Array.isArray(res.data)) {
         this.examList = res.data
       } else {
@@ -149,7 +152,7 @@ export default {
       if (!this.selectedExamId) return
       this.loading = true
       const response = await getReviewPapers(this.selectedExamId, 0)
-      const res = response.data
+      const res = response.data // 统一解包
       if (res && res.code === 200 && Array.isArray(res.data)) {
         this.paperList = res.data
       } else {
@@ -157,25 +160,29 @@ export default {
         this.$message.error(res?.msg || '获取试卷列表失败')
       }
       this.loading = false
+      // 新增：批量查姓名
       const userIds = [...new Set(this.paperList.map(p => p.userId))];
       await Promise.all(userIds.map(id => this.fetchUserName(id)));
     },
     async viewPaper(row) {
       const response = await getPaperDetail(row.paperId)
-      const res = response.data
+      const res = response.data // 统一解包
       if (res && res.code === 200 && res.data) {
+        // 强制每道题score为数字
         if (res.data.questions) {
           res.data.questions.forEach(q => {
             q.score = Number(q.score) || 0
           })
         }
         this.currentPaper = res.data
+        // 查学生姓名
         await this.fetchUserName(this.currentPaper.userId)
+        // 初始化主观题得分
         this.subjectiveScores = {}
         if (this.currentPaper && this.currentPaper.questions) {
           this.currentPaper.questions.forEach(q => {
             if (q.questionType === 'TEXT') {
-              this.$set(this.subjectiveScores, q.questionId, q.score)
+              this.$set(this.subjectiveScores, q.questionId, q.score) // 用 $set 保证响应式
             }
           })
         }
@@ -197,7 +204,7 @@ export default {
         paperId: this.currentPaper.paperId,
         subjectiveScores: this.subjectiveScores
       })
-      const res = response.data
+      const res = response.data // 统一解包
       if (res && res.code === 200) {
         this.$message.success(res.data || res.msg || '批改成功')
         this.showDialog = false
@@ -489,19 +496,24 @@ export default {
   color: #b48bb3;
   font-size: 12px;
 }
+
+/* PC端学生信息样式 */
 .student-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .student-info .student-name {
   font-weight: 500;
   color: #333;
 }
+
 .student-info .student-id {
   font-size: 12px;
   color: #999;
 }
+
 @media (max-width: 768px) {
   .review-papers {
     padding: 0 4vw 24px 4vw;
@@ -533,40 +545,52 @@ export default {
     border-radius: 12px !important;
     font-size: 15px;
   }
+
+  /* 移动端卡片优化 */
   .paper-cards {
     gap: 12px;
   }
+
   .paper-card {
     padding: 12px;
     border-radius: 12px;
   }
+
   .paper-card-header {
     margin-bottom: 10px;
   }
+
   .paper-id {
     font-size: 16px;
   }
+
   .review-btn {
     padding: 6px 12px !important;
     font-size: 12px;
     border-radius: 10px !important;
   }
+
   .paper-info-row {
     gap: 6px;
   }
+
   .info-label {
     font-size: 13px;
     min-width: 45px;
   }
+
   .info-value {
     font-size: 13px;
   }
+
   .submit-time {
     font-size: 12px;
   }
+
   .student-id {
     font-size: 12px;
   }
+
   .paper-table {
     font-size: 14px !important;
     border-radius: 10px !important;
@@ -603,40 +627,52 @@ export default {
     font-size: 15px;
     margin-bottom: 10px;
   }
+
+  /* 手机端卡片进一步优化 */
   .paper-cards {
     gap: 8px;
   }
+
   .paper-card {
     padding: 10px;
     border-radius: 10px;
   }
+
   .paper-card-header {
     margin-bottom: 8px;
   }
+
   .paper-id {
     font-size: 15px;
   }
+
   .review-btn {
     padding: 4px 10px !important;
     font-size: 11px;
     border-radius: 8px !important;
   }
+
   .paper-info-row {
     gap: 4px;
   }
+
   .info-label {
     font-size: 12px;
     min-width: 40px;
   }
+
   .info-value {
     font-size: 12px;
   }
+
   .submit-time {
     font-size: 11px;
   }
+
   .student-id {
     font-size: 11px;
   }
+
   .paper-table {
     width: 100% !important;
     font-size: 13px !important;

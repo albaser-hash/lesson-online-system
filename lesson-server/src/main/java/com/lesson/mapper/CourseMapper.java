@@ -3,8 +3,9 @@ package com.lesson.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lesson.entity.Course;
-import com.lesson.vo.MyCourseVO;
+import com.lesson.vo.DetailCourseVO;
 import com.lesson.vo.ScanCourseVO;
+import com.lesson.vo.MyCourseVO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;

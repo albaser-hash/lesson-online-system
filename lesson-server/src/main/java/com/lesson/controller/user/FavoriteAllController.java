@@ -1,14 +1,26 @@
 package com.lesson.controller.user;
 
+import com.lesson.constant.JwtClaimsConstant;
 import com.lesson.dto.PageQueryDTO;
+import com.lesson.dto.UserLoginDTO;
+import com.lesson.dto.UserRegisterDTO;
+import com.lesson.entity.User;
+import com.lesson.properties.JwtProperties;
 import com.lesson.result.PageResult;
 import com.lesson.result.Result;
 import com.lesson.service.CourseService;
+import com.lesson.service.UserService;
+import com.lesson.utils.JwtUtil;
+import com.lesson.vo.UserLoginVO;
+import com.lesson.vo.UserRegisterVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user")

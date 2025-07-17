@@ -1,7 +1,6 @@
 package com.lesson.dto;
 
 import lombok.Data;
-
 import java.io.Serializable;
 
 /**

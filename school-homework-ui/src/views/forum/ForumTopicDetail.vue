@@ -41,6 +41,7 @@
       </div>
       <div class="topic-content">{{ topic.topicContent }}</div>
     </el-card>
+
     <el-card class="reply-card">
       <div slot="header" class="reply-header"><span>回复列表</span></div>
       <el-timeline>
@@ -69,7 +70,7 @@
               </div>
               <div v-else class="reply-content">
                 <template v-if="reply.replyToUserName">
-                  <span class="reply-to">回复 @{{ reply.replyToUserName }}</span>
+                  <span class="reply-to">回复 @{{ reply.replyToUserName }}：</span>
                 </template>
                 {{ reply.replyContent }}
               </div>
@@ -131,6 +132,7 @@
         <el-button v-if="replyTarget" class="cancel-reply-btn" @click="cancelReply">取消回复</el-button>
       </div>
     </el-card>
+
     <el-dialog :visible.sync="editDialogVisible" title="编辑主题" width="90%" class="forum-dialog">
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="标题" prop="topicTitle" required>
@@ -151,15 +153,19 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitEditTopic" class="submit-btn">保存</el-button>
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="submitEditTopic" class="submit-btn">保 存</el-button>
       </span>
     </el-dialog>
   </div>
 </template>
+
 <script>
 import { mapState } from 'vuex'
 import defaultAvatar from '@/assets/images/profile.jpg'
+import { getTopicDetail, replyToTopic, deleteReply, updateTopic, updateReply } from '@/api/forum'
+import { listCourseCategories } from '@/api/courseCategories'
+
 export default {
   name: 'ForumTopicDetail',
   data() {
@@ -167,14 +173,7 @@ export default {
       defaultAvatar: defaultAvatar,
       topic: {},
       replies: [],
-      categories: [
-        { categoryId: 1, categoryName: '编程语言' },
-        { categoryId: 2, categoryName: '前端开发' },
-        { categoryId: 3, categoryName: '后端开发' },
-        { categoryId: 4, categoryName: '数据库' },
-        { categoryId: 5, categoryName: 'DevOps' },
-        { categoryId: 6, categoryName: '学习资源' }
-      ],
+      categories: [],
       newReply: '',
       replyTarget: null,
       editDialogVisible: false,
@@ -204,8 +203,17 @@ export default {
     if (topicId) {
       this.loadTopicDetail(topicId);
     }
+    this.loadCategories();
   },
   methods: {
+    loadCategories() {
+      listCourseCategories({ page: 1, pageSize: 100 }).then(response => {
+        this.categories = response.data.data.records || []
+      }).catch(error => {
+        console.error('加载分类失败:', error)
+        this.$message.error('加载分类失败')
+      })
+    },
     formatDateTime(ts) {
       if (!ts) return ''
       const date = new Date(ts)
@@ -217,7 +225,7 @@ export default {
       return `${Y}-${M}-${D} ${h}:${m}`
     },
     getAvatarUrl(avatar) {
-      if (!avatar || (!/^https?:\/\//.test(avatar))) {
+      if (!avatar || (!/^https?:\/\//.test(avatar) && !avatar.startsWith('/'))) {
         return require('@/assets/images/profile.jpg')
       }
       return avatar
@@ -253,65 +261,41 @@ export default {
         this.$message.error('评论内容不能为空')
         return
       }
-      const newReplyData = {
-        replyId: Date.now(),
-        userId: this.currentUserId || 1,
-        userName: this.name || this.currentUserName || '当前用户',
-        avatar: this.currentUserAvatar || '',
+      const topicId = this.topic.topicId;
+      let payload = {
+        topicId: topicId,
         replyContent: this.newReply,
-        createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        parentReplyId: this.replyTarget ? this.replyTarget.parentReplyId : null,
-        replyToUserId: this.replyTarget ? this.replyTarget.replyToUserId : null,
-        replyToUserName: this.replyTarget ? this.replyTarget.replyToUserName : null,
-        children: []
+        userId: this.currentUserId,
+        userName: this.name || this.currentUserName,
+        avatar: this.currentUserAvatar
       };
       if (this.replyTarget) {
-        const targetReply = this.findReplyById(this.replies, this.replyTarget.parentReplyId);
-        if (targetReply) {
-          targetReply.children.push(newReplyData);
-        }
-      } else {
-        this.replies.push(newReplyData);
+        payload.parentReplyId = this.replyTarget.parentReplyId;
+        payload.replyToUserId = this.replyTarget.replyToUserId;
+        payload.replyToUserName = this.replyTarget.replyToUserName;
       }
-      this.$message.success('评论成功');
-      this.newReply = '';
-      this.replyTarget = null;
-    },
-    findReplyById(replies, replyId) {
-      for (let reply of replies) {
-        if (reply.replyId === replyId) {
-          return reply;
-        }
-        if (reply.children && reply.children.length > 0) {
-          const found = this.findReplyById(reply.children, replyId);
-          if (found) return found;
-        }
-      }
-      return null;
+      replyToTopic(payload).then(() => {
+        this.$message.success('评论成功');
+        this.newReply = '';
+        this.replyTarget = null;
+        this.loadTopicDetail(topicId);
+      }).catch(() => {
+        this.$message.error('评论失败，请重试');
+      })
     },
     handleDeleteReply(replyId) {
       return this.$confirm('确定要删除这条回复吗？', '提示', { type: 'warning' })
         .then(() => {
-          this.removeReplyById(this.replies, replyId);
-          this.$message.success('删除成功');
+          return deleteReply(replyId)
+        })
+        .then(() => {
+          this.$message.success('删除成功')
+          // 重新拉取回复列表
+          this.loadTopicDetail(this.topic.topicId)
         })
         .catch((err) => {
           console.log('取消或出错', err)
         })
-    },
-    removeReplyById(replies, replyId) {
-      for (let i = 0; i < replies.length; i++) {
-        if (replies[i].replyId === replyId) {
-          replies.splice(i, 1);
-          return true;
-        }
-        if (replies[i].children && replies[i].children.length > 0) {
-          if (this.removeReplyById(replies[i].children, replyId)) {
-            return true;
-          }
-        }
-      }
-      return false;
     },
     handleEditTopic() {
       this.editForm.topicTitle = this.topic.topicTitle;
@@ -324,11 +308,19 @@ export default {
         this.$message.error('请填写标题和内容')
         return
       }
-      this.topic.topicTitle = this.editForm.topicTitle;
-      this.topic.topicCategory = this.editForm.topicCategory;
-      this.topic.topicContent = this.editForm.topicContent;
-      this.$message.success('编辑成功')
-      this.editDialogVisible = false
+      updateTopic({
+        topicId: this.topic.topicId,
+        topicTitle: this.editForm.topicTitle,
+        topicCategory: this.editForm.topicCategory,
+        topicContent: this.editForm.topicContent,
+        userId: this.currentUserId
+      }).then(() => {
+        this.$message.success('编辑成功')
+        this.editDialogVisible = false
+        this.loadTopicDetail(this.topic.topicId)
+      }).catch(() => {
+        this.$message.error('编辑失败，请重试')
+      })
     },
     handleEditReply(reply) {
       this.$set(reply, 'isEditing', true)
@@ -339,74 +331,35 @@ export default {
         this.$message.error('回复内容不能为空')
         return
       }
-      reply.replyContent = reply.editContent
-      this.$set(reply, 'isEditing', false)
-      this.$message.success('编辑成功')
+      updateReply({
+        replyId: reply.replyId,
+        replyContent: reply.editContent,
+        userId: this.currentUserId
+      }).then(() => {
+        this.$message.success('编辑成功')
+        reply.replyContent = reply.editContent
+        this.$set(reply, 'isEditing', false)
+      }).catch((error) => {
+        console.error('回复编辑失败:', error)
+        this.$message.error('编辑失败，请重试')
+      })
     },
     cancelEditReply(reply) {
       this.$set(reply, 'isEditing', false)
       this.$set(reply, 'editContent', '')
     },
     loadTopicDetail(topicId) {
-      console.log('开始加载主题详情，topicId:', topicId);
-      const mockTopic = {
-        topicId: topicId,
-        userId: 1,
-        topicTitle: 'Java多线程编程最佳实践',
-        topicContent: '最近在学习Java多线程，想请教一下在实际项目中如何避免死锁？有什么好的设计模式推荐吗？\n\n我目前遇到的问题是：\n1. 如何正确使用synchronized关键字\n2. 什么时候使用ReentrantLock\n3. 线程池的最佳实践\n4. 如何避免死锁情况\n\n希望有经验的朋友能够分享一下实际项目中的经验。',
-        topicCategory: '编程语言',
-        replyCount: 3,
-        createTime: '2025-07-01 10:30:00',
-        userName: '张三',
-        avatar: ''
-      };
-      const mockReplies = [
-        {
-          replyId: 1,
-          userId: 2,
-          userName: '李四',
-          avatar: '',
-          replyContent: '对于死锁问题，建议使用以下策略：\n1. 按固定顺序获取锁\n2. 使用tryLock()方法\n3. 设置锁超时时间。',
-          createTime: '2025-07-01 11:00:00',
-          parentReplyId: null,
-          replyToUserId: null,
-          replyToUserName: null,
-          children: [
-            {
-              replyId: 2,
-              userId: 3,
-              userName: '王五',
-              avatar: '',
-              replyContent: '@李四 能详细说说tryLock()的使用方法吗？',
-              createTime: '2025-07-01 11:30:00',
-              parentReplyId: 1,
-              replyToUserId: 2,
-              replyToUserName: '李四',
-              children: []
-            }
-          ]
-        },
-        {
-          replyId: 3,
-          userId: 4,
-          userName: '赵六',
-          avatar: '',
-          replyContent: '推荐使用ThreadPoolExecutor，可以更好地控制线程池参数，避免资源耗尽。',
-          createTime: '2025-07-01 12:00:00',
-          parentReplyId: null,
-          replyToUserId: null,
-          replyToUserName: null,
-          children: []
-        }
-      ];
-      this.topic = mockTopic;
-      this.replies = mockReplies;
-      console.log('设置的主题数据', this.topic);
-      console.log('设置的回复数据', this.replies);
+      getTopicDetail(topicId).then(response => {
+        this.topic = response.data.data.topic
+        this.replies = Array.isArray(response.data.data.replies) ? response.data.data.replies : []
+      }).catch(error => {
+        this.$message.error('加载主题详情失败，请重试')
+      })
     }
   }
 }
 </script>
+
 <style scoped>
 .forum-topic-detail-page {
   padding: 20px;

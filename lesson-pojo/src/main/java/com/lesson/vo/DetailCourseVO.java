@@ -1,10 +1,8 @@
 package com.lesson.vo;
 
 import com.lesson.entity.Chapter;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import com.lesson.entity.Paper;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.List;

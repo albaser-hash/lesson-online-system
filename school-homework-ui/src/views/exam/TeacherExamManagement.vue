@@ -22,9 +22,10 @@
         </div>
       </div>
     </div>
+
     <!-- 考试列表 -->
     <div class="exam-list">
-      <!-- PC端表�?-->
+      <!-- PC端表格 -->
       <el-table v-if="!isMobile" :data="examList" v-loading="loading" style="width: 100%">
         <el-table-column prop="examName" label="考试名称" min-width="150" />
         <el-table-column prop="courseName" label="所属课程" min-width="120" />
@@ -86,6 +87,7 @@
           </template>
         </el-table-column>
       </el-table>
+
       <!-- 移动端卡片 -->
       <div v-else class="exam-cards">
         <div v-for="exam in examList" :key="exam.examId" class="exam-card">
@@ -95,6 +97,7 @@
               {{ getStatusText(exam.status) }}
             </el-tag>
           </div>
+          
           <div class="exam-card-content">
             <div class="exam-info-row">
               <span class="info-label">课程：</span>
@@ -113,6 +116,7 @@
               <span class="info-value end-time">{{ formatDateTime(exam.endTime) }}</span>
             </div>
           </div>
+          
           <div class="exam-card-actions">
             <el-button size="mini" @click="viewExam(exam)" class="action-btn">查看</el-button>
             <el-button
@@ -159,6 +163,7 @@
         </div>
       </div>
     </div>
+
     <!-- 创建考试对话框 -->
     <el-dialog
       :visible.sync="showCreateDialog"
@@ -171,6 +176,7 @@
         <el-form-item label="考试名称" prop="examName">
           <el-input v-model="examForm.examName" placeholder="请输入考试名称" />
         </el-form-item>
+
         <el-form-item label="所属课程" prop="courseId">
           <el-select v-model="examForm.courseId" placeholder="请选择课程" style="width: 100%">
             <el-option
@@ -185,9 +191,10 @@
             暂无可用课程，请先创建课程
           </div>
           <div v-else style="color: #67c23a; font-size: 12px; margin-top: 5px;">
-            已加载{{ courseList.length }} 门课程
+            已加载 {{ courseList.length }} 门课程
           </div>
         </el-form-item>
+
         <el-form-item label="考试时间" prop="examTime">
           <template v-if="!isMobile">
             <el-date-picker
@@ -215,6 +222,7 @@
           </template>
         </el-form-item>
       </el-form>
+
       <!-- 题目列表 -->
       <div class="questions-section">
         <div class="questions-header">
@@ -228,6 +236,7 @@
             <el-button type="success" @click="importCourseQuestions" :disabled="!examForm.courseId">导入题库</el-button>
           </div>
         </div>
+
         <div v-for="(question, index) in examForm.questions" :key="index" class="question-item">
           <div class="question-header">
             <span>题目 {{ index + 1 }}</span>
@@ -236,6 +245,7 @@
               <el-button type="danger" size="mini" @click="removeQuestion(index)">删除</el-button>
             </div>
           </div>
+
           <el-form :model="question" label-width="100px">
             <el-form-item label="题目类型">
               <el-select v-model="question.questionType" style="width: 200px" @change="onQuestionTypeChange(question)">
@@ -245,6 +255,7 @@
                 <el-option label="简答题" value="TEXT" />
               </el-select>
             </el-form-item>
+
             <el-form-item label="题目内容">
               <el-input
                 v-model="question.questionContent"
@@ -253,6 +264,7 @@
                 placeholder="请输入题目内容"
               />
             </el-form-item>
+
             <el-form-item label="选项" v-if="['SINGLE_CHOICE', 'MULTIPLE_CHOICE'].includes(question.questionType)">
               <el-input
                 v-model="question.options"
@@ -261,6 +273,7 @@
                 placeholder="请输入选项，每行一个选项，如：A. 选项1&#10;B. 选项2&#10;C. 选项3&#10;D. 选项4"
               />
             </el-form-item>
+
             <el-form-item label="正确答案" prop="correctAnswer">
               <!-- 单选题 -->
               <el-radio-group v-if="question.questionType === 'SINGLE_CHOICE' && parseOptions(question.options).length > 0" v-model="question.correctAnswer">
@@ -272,6 +285,7 @@
                   {{ option.key }}. {{ option.text }}
                 </el-radio>
               </el-radio-group>
+
               <!-- 多选题 -->
               <el-checkbox-group v-else-if="question.questionType === 'MULTIPLE_CHOICE' && parseOptions(question.options).length > 0" v-model="question.correctAnswer">
                 <el-checkbox
@@ -282,11 +296,13 @@
                   {{ option.key }}. {{ option.text }}
                 </el-checkbox>
               </el-checkbox-group>
+
               <!-- 判断题 -->
               <el-radio-group v-else-if="question.questionType === 'JUDGE'" v-model="question.correctAnswer">
                 <el-radio label="true">正确</el-radio>
                 <el-radio label="false">错误</el-radio>
               </el-radio-group>
+
               <!-- 简答题 -->
               <el-input
                 v-else-if="question.questionType === 'TEXT'"
@@ -295,6 +311,7 @@
                 :rows="3"
                 placeholder="请输入参考答案"
               />
+
               <!-- 默认输入框（用于没有选项的单选题、多选题等） -->
               <el-input
                 v-else
@@ -302,6 +319,7 @@
                 :placeholder="getAnswerPlaceholder(question.questionType)"
               />
             </el-form-item>
+
             <el-form-item label="题目解析">
               <el-input
                 v-model="question.explanation"
@@ -310,9 +328,11 @@
                 placeholder="请输入题目解析（可选）"
               />
             </el-form-item>
-            <el-form-item label="分数">
+
+            <el-form-item label="分值">
               <el-input-number v-model="question.score" :min="1" :max="100" />
             </el-form-item>
+
             <el-form-item label="难度">
               <el-select v-model="question.difficulty" style="width: 200px">
                 <el-option label="简单" value="EASY" />
@@ -323,6 +343,7 @@
           </el-form>
         </div>
       </div>
+
       <div slot="footer" class="dialog-footer">
         <el-button @click="showCreateDialog = false">取消</el-button>
         <el-button type="primary" @click="addQuestion">添加题目</el-button>
@@ -330,6 +351,7 @@
         <el-button type="primary" @click="createExam" :loading="creating">创建考试</el-button>
       </div>
     </el-dialog>
+
     <!-- 编辑考试对话框 -->
     <el-dialog
       :visible.sync="showEditDialog"
@@ -342,6 +364,7 @@
         <el-form-item label="考试名称" prop="examName">
           <el-input v-model="editForm.examName" placeholder="请输入考试名称" />
         </el-form-item>
+
         <el-form-item label="所属课程" prop="courseId">
           <el-select v-model="editForm.courseId" placeholder="请选择课程" style="width: 100%" disabled>
             <el-option
@@ -355,6 +378,7 @@
             编辑时不能修改所属课程
           </div>
         </el-form-item>
+
         <el-form-item label="考试时间" prop="examTime">
           <template v-if="!isMobile">
             <el-date-picker
@@ -382,6 +406,7 @@
           </template>
         </el-form-item>
       </el-form>
+
       <!-- 题目列表 -->
       <div class="questions-section">
         <div class="questions-header">
@@ -395,6 +420,7 @@
             <el-button type="success" @click="importEditCourseQuestions" :disabled="!editForm.courseId">导入题库</el-button>
           </div>
         </div>
+
         <div v-for="(question, index) in editForm.questions" :key="index" class="question-item">
           <div class="question-header">
             <span>题目 {{ index + 1 }}</span>
@@ -403,6 +429,7 @@
               <el-button type="danger" size="mini" @click="removeEditQuestion(index)">删除</el-button>
             </div>
           </div>
+
           <el-form :model="question" label-width="100px">
             <el-form-item label="题目类型">
               <el-select v-model="question.questionType" style="width: 200px" @change="onEditQuestionTypeChange(question)">
@@ -412,6 +439,7 @@
                 <el-option label="简答题" value="TEXT" />
               </el-select>
             </el-form-item>
+
             <el-form-item label="题目内容">
               <el-input
                 v-model="question.questionContent"
@@ -420,6 +448,7 @@
                 placeholder="请输入题目内容"
               />
             </el-form-item>
+
             <el-form-item label="选项" v-if="['SINGLE_CHOICE', 'MULTIPLE_CHOICE'].includes(question.questionType)">
               <el-input
                 v-model="question.options"
@@ -428,6 +457,7 @@
                 placeholder="请输入选项，每行一个选项，如：A. 选项1&#10;B. 选项2&#10;C. 选项3&#10;D. 选项4"
               />
             </el-form-item>
+
             <el-form-item label="正确答案" prop="correctAnswer">
               <!-- 单选题 -->
               <el-radio-group v-if="question.questionType === 'SINGLE_CHOICE' && parseOptions(question.options).length > 0" v-model="question.correctAnswer">
@@ -439,6 +469,7 @@
                   {{ option.key }}. {{ option.text }}
                 </el-radio>
               </el-radio-group>
+
               <!-- 多选题 -->
               <el-checkbox-group v-else-if="question.questionType === 'MULTIPLE_CHOICE' && parseOptions(question.options).length > 0" v-model="question.correctAnswer">
                 <el-checkbox
@@ -449,11 +480,13 @@
                   {{ option.key }}. {{ option.text }}
                 </el-checkbox>
               </el-checkbox-group>
+
               <!-- 判断题 -->
               <el-radio-group v-else-if="question.questionType === 'JUDGE'" v-model="question.correctAnswer">
                 <el-radio label="true">正确</el-radio>
                 <el-radio label="false">错误</el-radio>
               </el-radio-group>
+
               <!-- 简答题 -->
               <el-input
                 v-else-if="question.questionType === 'TEXT'"
@@ -462,6 +495,7 @@
                 :rows="3"
                 placeholder="请输入参考答案"
               />
+
               <!-- 默认输入框（用于没有选项的单选题、多选题等） -->
               <el-input
                 v-else
@@ -469,6 +503,7 @@
                 :placeholder="getAnswerPlaceholder(question.questionType)"
               />
             </el-form-item>
+
             <el-form-item label="题目解析">
               <el-input
                 v-model="question.explanation"
@@ -477,9 +512,11 @@
                 placeholder="请输入题目解析（可选）"
               />
             </el-form-item>
-            <el-form-item label="分数">
+
+            <el-form-item label="分值">
               <el-input-number v-model="question.score" :min="1" :max="100" />
             </el-form-item>
+
             <el-form-item label="难度">
               <el-select v-model="question.difficulty" style="width: 200px">
                 <el-option label="简单" value="EASY" />
@@ -490,6 +527,7 @@
           </el-form>
         </div>
       </div>
+
       <div slot="footer" class="dialog-footer">
         <el-button @click="showEditDialog = false">取消</el-button>
         <el-button type="primary" @click="addEditQuestion">添加题目</el-button>
@@ -497,6 +535,7 @@
         <el-button type="primary" @click="updateExam" :loading="updating">保存修改</el-button>
       </div>
     </el-dialog>
+
     <!-- 考试详情对话框 -->
     <el-dialog
       :visible.sync="showDetailDialog"
@@ -510,6 +549,7 @@
           <p><strong>题目数量：</strong>{{ examDetail.examCount }}</p>
           <p><strong>考试时间：</strong>{{ formatDateTime(examDetail.startTime) }} - {{ formatDateTime(examDetail.endTime) }}</p>
         </div>
+
         <div class="questions-list">
           <h3>题目列表</h3>
           <div v-for="(question, index) in examDetail.questions" :key="index" class="question-detail">
@@ -519,14 +559,17 @@
               <span class="question-content">{{ question.questionContent }}</span>
               <span class="question-score">({{ question.score }}分)</span>
             </div>
+
             <div v-if="question.options" class="question-options">
               <div v-for="option in question.options.split('\n')" :key="option" class="option">
                 {{ option }}
               </div>
             </div>
+
             <div class="question-answer">
               <strong>正确答案：</strong>{{ question.correctAnswer }}
             </div>
+
             <div v-if="question.explanation" class="question-explanation">
               <strong>题目解析：</strong>{{ question.explanation }}
             </div>
@@ -534,6 +577,7 @@
         </div>
       </div>
     </el-dialog>
+
     <!-- 统计信息对话框 -->
     <el-dialog
       :visible.sync="showStatisticsDialog"
@@ -562,6 +606,7 @@
               </div>
             </el-col>
           </el-row>
+
           <el-row :gutter="20" style="margin-top: 20px;">
             <el-col :span="8">
               <div class="stat-item">
@@ -587,78 +632,28 @@
     </el-dialog>
   </div>
 </template>
+
 <script>
 import { mapState } from 'vuex'
 import { getExamList, createExam, getExamDetail, publishExam, getExamStatistics, updateExam, deleteExam } from '@/api/exam'
 import { getTeacherTestCourses } from '@/api/createCourse'
+import webSocketService from '@/utils/websocket'
 import { getExamQuestions, saveExamQuestions, clearExamQuestions, getCourseQuestions } from '@/api/exam'
+import { getUserName } from '@/api/user'
+
 export default {
   name: 'TeacherExamManagement',
   data() {
     return {
       loading: false,
       creating: false,
-      examList: [
-        {
-          examId: 1,
-          examName: 'Vue.js基础测试',
-          courseName: 'Vue.js入门到精通',
-          examCount: 10,
-          startTime: '2024-01-20 10:00:00',
-          endTime: '2024-01-20 12:00:00',
-          status: 'ONGOING'
-        },
-        {
-          examId: 2,
-          examName: 'React框架测试',
-          courseName: 'React全栈开发',
-          examCount: 15,
-          startTime: '2024-01-18 14:00:00',
-          endTime: '2024-01-18 16:00:00',
-          status: 'FINISHED'
-        },
-        {
-          examId: 3,
-          examName: 'Java编程测试',
-          courseName: 'Java核心技术',
-          examCount: 20,
-          startTime: '2024-01-25 09:00:00',
-          endTime: '2024-01-25 11:00:00',
-          status: 'UPCOMING'
-        }
-      ],
-      courseList: [
-        {
-          courseId: 1,
-          courseName: 'Vue.js入门到精通',
-          categoryName: '前端开发',
-          teacherName: '张老师'
-        },
-        {
-          courseId: 2,
-          courseName: 'React全栈开发',
-          categoryName: '前端开发',
-          teacherName: '李老师'
-        },
-        {
-          courseId: 3,
-          courseName: 'Java核心技术',
-          categoryName: '后端开发',
-          teacherName: '王老师'
-        }
-      ],
+      examList: [],
+      courseList: [],
       showCreateDialog: false,
       showDetailDialog: false,
       showStatisticsDialog: false,
       examDetail: null,
-      examStatistics: {
-        totalStudents: 45,
-        averageScore: 78.5,
-        highestScore: 95,
-        lowestScore: 45,
-        passRate: 82.2,
-        correctRate: 76.8
-      },
+      examStatistics: null,
       examForm: {
         examName: '',
         courseId: '',
@@ -715,7 +710,6 @@ export default {
     }
   },
   mounted() {
-    console.log('教师考试管理页面使用假数据')
     this.checkTeacherPermission()
     this.checkMobile()
     window.addEventListener('resize', this.checkMobile)
@@ -728,12 +722,12 @@ export default {
     }
   },
   beforeDestroy() {
+    // 组件销毁时断开WebSocket连接
     webSocketService.disconnect()
     window.removeEventListener('resize', this.checkMobile)
   },
   methods: {
     checkTeacherPermission() {
-      console.log('权限检查（假数据）')
       if (!this.userType) {
         setTimeout(() => {
           this.checkTeacherPermission()
@@ -747,14 +741,27 @@ export default {
         this.loadExamList()
       }
     },
+
     async loadExamList() {
-      console.log('加载考试列表（假数据）')
       this.loading = true
-      setTimeout(() => {
+      try {
+        const response = await getExamList()
+        const res = response.data // 统一解包
+        if (res && res.code === 200 && Array.isArray(res.data)) {
+          this.examList = res.data
+        } else {
+          this.examList = []
+          this.$message.error(res?.msg || '加载考试列表失败')
+        }
+      } catch (error) {
+        this.$message.error('加载考试列表失败')
+        console.error(error)
+        this.examList = []
+      } finally {
         this.loading = false
-        this.$message.success('考试列表加载成功（假数据）')
-      }, 500)
+      }
     },
+
     addQuestion() {
       this.examForm.questions.push({
         questionType: 'SINGLE_CHOICE',
@@ -766,16 +773,22 @@ export default {
         difficulty: 'MEDIUM'
       })
     },
+
     removeQuestion(index) {
       this.examForm.questions.splice(index, 1)
     },
+
+    // 监听题目类型变化，重置答案格式
     onQuestionTypeChange(question) {
       if (question.questionType === 'MULTIPLE_CHOICE') {
+        // 多选题答案应该是数组
         question.correctAnswer = []
       } else {
+        // 其他题型答案应该是字符串
         question.correctAnswer = ''
       }
     },
+
     getAnswerPlaceholder(questionType) {
       const placeholders = {
         'SINGLE_CHOICE': '请输入正确答案，如：A',
@@ -785,33 +798,75 @@ export default {
       }
       return placeholders[questionType] || '请输入正确答案'
     },
+
     async openCreateDialog(exam) {
-      console.log('打开创建考试对话框（假数据）')
+      // 懒加载课程列表
       if (this.courseList.length === 0) {
-        console.log('课程列表为空，使用假数据')
+        try {
+          const response = await getTeacherTestCourses({ teacherId: this.userId, page: 1, pageSize: 100 })
+          const res = response.data // 统一解包
+          if (res && res.code === 200 && res.data && Array.isArray(res.data.records)) {
+            this.courseList = res.data.records
+          } else {
+            this.courseList = []
+          }
+        } catch (error) {
+          console.error('[TeacherExamManagement] 加载课程列表失败:', error)
+          this.$message.error('加载课程列表失败')
+          this.courseList = []
+        }
       }
+
       if (this.courseList.length > 0) {
         if (exam && exam.examId) {
-          console.log('编辑考试（假数据）')
-          this.examForm = {
-            ...exam,
-            examTime: [exam.startTime, exam.endTime],
-            questions: [
-              {
-                questionType: 'SINGLE_CHOICE',
-                questionContent: 'Vue.js是什么？',
-                options: 'A. 前端框架\nB. 后端框架\nC. 数据库\nD. 操作系统',
-                correctAnswer: 'A',
-                explanation: 'Vue.js是一个流行的前端JavaScript框架',
-                score: 10,
-                difficulty: 'MEDIUM'
+          // 编辑已有考试，自动加载题目
+          const res = await getExamQuestions(exam.examId)
+          if (res.code === 200) {
+            // 处理题目数据，转换答案格式
+            const processedQuestions = (res.data || []).map(question => {
+              const processedQuestion = { ...question };
+
+              // 处理多选题答案格式
+              if (question.questionType === 'MULTIPLE_CHOICE' && question.correctAnswer) {
+                if (typeof question.correctAnswer === 'string') {
+                  // 将逗号分隔的字符串转换为数组
+                  processedQuestion.correctAnswer = question.correctAnswer
+                    .split(',')
+                    .map(item => item.trim())
+                    .filter(item => item.length > 0);
+                }
               }
-            ]
+
+              // 处理判断题答案格式
+              if (question.questionType === 'JUDGE' && question.correctAnswer) {
+                if (typeof question.correctAnswer === 'string') {
+                  // 将 "TRUE"/"FALSE" 转换为 "true"/"false"
+                  processedQuestion.correctAnswer = question.correctAnswer.toLowerCase();
+                }
+              }
+
+              // 处理单选题答案格式（如果有选项但答案是多选格式）
+              if (question.questionType === 'SINGLE_CHOICE' && question.correctAnswer) {
+                if (typeof question.correctAnswer === 'string' && question.correctAnswer.includes(',')) {
+                  // 如果单选题答案包含逗号，取第一个答案
+                  processedQuestion.correctAnswer = question.correctAnswer.split(',')[0].trim();
+                }
+              }
+
+              return processedQuestion;
+            });
+
+            this.examForm = {
+              ...exam,
+              examTime: [exam.startTime, exam.endTime],
+              questions: processedQuestions
+            }
           }
         } else {
+          // 新建考试
           const now = new Date()
-          const start = new Date(now.getTime() + 60 * 60 * 1000)
-          const end = new Date(now.getTime() + 2 * 60 * 60 * 1000)
+          const start = new Date(now.getTime() + 60 * 60 * 1000) // 1小时后开始
+          const end = new Date(now.getTime() + 2 * 60 * 60 * 1000) // 2小时后结束
           this.examForm = {
             examName: '',
             courseId: '',
@@ -825,14 +880,26 @@ export default {
       }
     },
     async saveQuestions() {
-      console.log('保存题目（假数据）')
-      this.$message.success('题目已保存（假数据）')
+      if (!this.examForm.examId) {
+        this.$message.warning('请先创建考试，再保存题目')
+        return
+      }
+      const res = await saveExamQuestions(this.examForm.examId, this.examForm.questions)
+      if (res.code === 200) {
+        this.$message.success('题目已保存')
+      }
     },
     async clearQuestions() {
-      console.log('清空题目（假数据）')
+      if (!this.examForm.examId) {
+        this.examForm.questions = []
+        return
+      }
       await this.$confirm('确定要清空所有题目吗？', '提示')
-      this.examForm.questions = []
-      this.$message.success('题目已清空（假数据）')
+      const res = await clearExamQuestions(this.examForm.examId)
+      if (res.code === 200) {
+        this.examForm.questions = []
+        this.$message.success('题目已清空')
+      }
     },
     async createExam() {
       this.$refs.examFormRef.validate(async (valid) => {
@@ -841,13 +908,18 @@ export default {
           this.$message.warning('请至少添加一道题目')
           return
         }
+
+        // 验证和格式化答案
         for (let i = 0; i < this.examForm.questions.length; i++) {
           const question = this.examForm.questions[i]
+
+          // 验证答案是否已填写
           if (question.questionType === 'MULTIPLE_CHOICE') {
             if (!Array.isArray(question.correctAnswer) || question.correctAnswer.length === 0) {
               this.$message.error(`第${i + 1}题（多选题）请选择正确答案`)
               return
             }
+            // 多选题答案转换为逗号分隔的字符串
             question.correctAnswer = question.correctAnswer.join(',')
           } else {
             if (!question.correctAnswer || question.correctAnswer.toString().trim() === '') {
@@ -856,23 +928,38 @@ export default {
             }
           }
         }
+
         this.creating = true
         try {
-          console.log('创建考试（假数据）')
-          setTimeout(() => {
-            this.$message.success('考试创建成功（假数据）')
+          const examData = {
+            courseId: this.examForm.courseId,
+            examName: this.examForm.examName,
+            startTime: this.examForm.examTime[0],
+            endTime: this.examForm.examTime[1],
+            questions: this.examForm.questions
+          }
+
+          const res = await createExam(examData)
+          // 兼容axios响应结构
+          const result = res && res.data ? res.data : res
+          if (result.code === 200 && result.data && typeof result.data.examId !== 'undefined') {
+            this.examForm.examId = result.data.examId
+            this.$message.success(result.msg || '考试创建成功')
             this.showCreateDialog = false
             this.resetForm()
             this.loadExamList()
-            this.creating = false
-          }, 1000)
+          } else {
+            this.$message.error(result.msg || '创建考试失败')
+          }
         } catch (error) {
           this.$message.error('创建考试失败')
-          console.error('创建考试错误:', error)
+          console.error('创建考试错误:', error) // 调试日志
+        } finally {
           this.creating = false
         }
       })
     },
+
     resetForm() {
       this.examForm = {
         examName: '',
@@ -882,28 +969,23 @@ export default {
       }
       this.$refs.examFormRef.resetFields()
     },
+
     async viewExam(exam) {
-      console.log('查看考试详情（假数据）')
-      this.examDetail = {
-        examId: exam.examId,
-        examName: exam.examName,
-        courseName: exam.courseName,
-        examCount: exam.examCount,
-        startTime: exam.startTime,
-        endTime: exam.endTime,
-        questions: [
-          {
-            questionType: 'SINGLE_CHOICE',
-            questionContent: 'Vue.js是什么？',
-            options: 'A. 前端框架\nB. 后端框架\nC. 数据库\nD. 操作系统',
-            correctAnswer: 'A',
-            explanation: 'Vue.js是一个流行的前端JavaScript框架',
-            score: 10
-          }
-        ]
+      try {
+        const response = await getExamDetail(exam.examId)
+        const res = response.data // 统一解包
+        if (res && res.code === 200 && res.data) {
+          this.examDetail = res.data
+          this.showDetailDialog = true
+        } else {
+          this.$message.error(res?.msg || '获取考试详情失败')
+        }
+      } catch (error) {
+        this.$message.error('获取考试详情失败')
+        console.error(error)
       }
-      this.showDetailDialog = true
     },
+
     async publishExam(exam) {
       try {
         await this.$confirm('确定要推送这个考试吗？', '提示', {
@@ -911,11 +993,15 @@ export default {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        console.log('推送考试（假数据）')
-        setTimeout(() => {
-          this.$message.success('考试推送成功（假数据）')
+
+        const response = await publishExam(exam.examId)
+        const res = response.data // 统一解包
+        if (res && res.code === 200) {
+          this.$message.success(res.data || res.msg || '考试推送成功')
           this.loadExamList()
-        }, 500)
+        } else {
+          this.$message.error(res?.msg || '推送考试失败')
+        }
       } catch (error) {
         if (error !== 'cancel') {
           this.$message.error('推送考试失败')
@@ -923,21 +1009,37 @@ export default {
         }
       }
     },
+
     async viewStatistics(exam) {
-      console.log('查看考试统计（假数据）')
-      this.examStatistics = {
-        totalStudents: 45,
-        averageScore: 78.5,
-        highestScore: 95,
-        lowestScore: 45,
-        passRate: 82.2,
-        correctRate: 76.8
+      try {
+        const response = await getExamStatistics(exam.examId)
+        const res = response.data // 统一解包
+        if (res && res.code === 200 && res.data) {
+          this.examStatistics = res.data
+          // 收集所有学生ID
+          let userIds = [];
+          if (res.data.studentIdList) {
+            userIds = res.data.studentIdList
+          }
+          if (res.data.detailList) {
+            userIds = userIds.concat(res.data.detailList.map(d => d.studentId))
+          }
+          userIds = [...new Set(userIds.filter(Boolean))]
+          await this.fetchUserNames(userIds)
+          this.showStatisticsDialog = true
+        } else {
+          this.$message.error(res?.msg || '获取考试统计失败')
+        }
+      } catch (error) {
+        this.$message.error('获取考试统计失败')
+        console.error(error)
       }
-      this.showStatisticsDialog = true
     },
+
     formatDateTime(dateTime) {
       if (!dateTime) return ''
       const date = new Date(dateTime)
+      // 明确指定中国时区显示
       return date.toLocaleString('zh-CN', {
         timeZone: 'Asia/Shanghai',
         year: 'numeric',
@@ -948,59 +1050,57 @@ export default {
         second: '2-digit'
       })
     },
+
     getStatusType(status) {
-      switch (status) {
-        case 'UPCOMING':
-          return 'info'
-        case 'ONGOING':
-          return 'warning'
-        case 'FINISHED':
-          return 'success'
-        default:
-          return 'info'
+      const statusMap = {
+        'UPCOMING': 'info',
+        'ONGOING': 'success',
+        'FINISHED': 'warning'
       }
+      return statusMap[status] || 'info'
     },
+
     getStatusText(status) {
-      switch (status) {
-        case 'UPCOMING':
-          return '未开始'
-        case 'ONGOING':
-          return '进行中'
-        case 'FINISHED':
-          return '已结束'
-        default:
-          return '未知'
+      const statusMap = {
+        'UPCOMING': '未开始',
+        'ONGOING': '进行中',
+        'FINISHED': '已结束'
       }
+      return statusMap[status] || '未知'
     },
+
     getQuestionTypeText(type) {
-      switch (type) {
-        case 'SINGLE_CHOICE':
-          return '单选题'
-        case 'MULTIPLE_CHOICE':
-          return '多选题'
-        case 'JUDGE':
-          return '判断题'
-        case 'TEXT':
-          return '简答题'
-        default:
-          return '未知'
+      const typeMap = {
+        'SINGLE_CHOICE': '单选题',
+        'MULTIPLE_CHOICE': '多选题',
+        'JUDGE': '判断题',
+        'TEXT': '简答题'
       }
+      return typeMap[type] || '未知'
     },
+
     goHome() {
       this.$router.push('/')
     },
+
     onDialogOpen() {
       this.getCourseList()
     },
+
     initWebSocket() {
-      console.log('初始化WebSocket（假数据）')
+      // 初始化WebSocket连接，传入 userId
+      webSocketService.connect(this.userId)
     },
+
+    // 获取教师的课程列表
     getCourseList() {
+      // 如果课程列表已加载，直接返回
       if (this.courseList.length > 0) {
         return
       }
+
       getTeacherTestCourses({ teacherId: this.userId, page: 1, pageSize: 100 }).then(response => {
-        const res = response.data
+        const res = response.data // 统一解包
         if (res && res.code === 200 && res.data && Array.isArray(res.data.records)) {
           this.courseList = res.data.records
         } else {
@@ -1009,77 +1109,156 @@ export default {
         }
       });
     },
+
     async importCourseQuestions() {
       if (!this.examForm.courseId) {
         this.$message.warning('请先选择课程');
         return;
       }
-      console.log('导入课程题目（假数据）')
-      const processedQuestions = [
-        {
-          questionType: 'SINGLE_CHOICE',
-          questionContent: 'Vue.js是什么？',
-          options: 'A. 前端框架\nB. 后端框架\nC. 数据库\nD. 操作系统',
-          correctAnswer: 'A',
-          explanation: 'Vue.js是一个流行的前端JavaScript框架',
-          score: 10,
-          difficulty: 'MEDIUM'
-        }
-      ];
-      this.examForm.questions = this.examForm.questions.concat(processedQuestions);
-      this.$message.success(`已导入${processedQuestions.length}道题目（假数据）`);
+      const response = await getCourseQuestions(this.examForm.courseId);
+      const res = response.data; // 统一解包
+      if (res.code === 200 && Array.isArray(res.data)) {
+        // 处理导入的题目，转换答案格式
+        const processedQuestions = res.data.map(question => {
+          const processedQuestion = { ...question };
+
+          // 处理多选题答案格式
+          if (question.questionType === 'MULTIPLE_CHOICE' && question.correctAnswer) {
+            if (typeof question.correctAnswer === 'string') {
+              // 将逗号分隔的字符串转换为数组
+              processedQuestion.correctAnswer = question.correctAnswer
+                .split(',')
+                .map(item => item.trim())
+                .filter(item => item.length > 0);
+            }
+          }
+
+          // 处理判断题答案格式
+          if (question.questionType === 'JUDGE' && question.correctAnswer) {
+            if (typeof question.correctAnswer === 'string') {
+              // 将 "TRUE"/"FALSE" 转换为 "true"/"false"
+              processedQuestion.correctAnswer = question.correctAnswer.toLowerCase();
+            }
+          }
+
+          // 处理单选题答案格式（如果有选项但答案是多选格式）
+          if (question.questionType === 'SINGLE_CHOICE' && question.correctAnswer) {
+            if (typeof question.correctAnswer === 'string' && question.correctAnswer.includes(',')) {
+              // 如果单选题答案包含逗号，取第一个答案
+              processedQuestion.correctAnswer = question.correctAnswer.split(',')[0].trim();
+            }
+          }
+
+          return processedQuestion;
+        });
+
+        // 后端已处理去重，直接添加所有返回的题目
+        this.examForm.questions = this.examForm.questions.concat(processedQuestions);
+        this.$message.success(`已导入${processedQuestions.length}道题目`);
+      } else {
+        this.$message.warning(res?.msg || '题库暂无可导入题目');
+      }
     },
+
     async fetchUserName(userId) {
       if (!userId) return '';
       if (this.userNameMap[userId]) return this.userNameMap[userId];
-      console.log('获取用户名（假数据）')
-      return `用户${userId}`;
+      const res = await getUserName(userId);
+      if (res.data && res.data.code === 200) {
+        this.$set(this.userNameMap, userId, res.data.data);
+        return res.data.data;
+      }
+      return userId;
     },
+
     async fetchUserNames(userIdList) {
-      console.log('批量获取用户名（假数据）')
+      await Promise.all(userIdList.filter(Boolean).map(id => this.fetchUserName(id)));
     },
+
     parseOptions(options) {
       if (!options || typeof options !== 'string' || options.trim() === '') return []
+
       return options.split('\n')
         .map(option => option.trim())
         .filter(option => option.length > 0)
         .map(option => {
+          // 匹配 "A:list" 格式
           const match = option.match(/^([A-Z]):\s*(.+)$/)
           if (match) {
             return { key: match[1], text: match[2].trim() }
           }
+          // 匹配 "A. list" 格式
           const match2 = option.match(/^([A-Z])\.\s*(.+)$/)
           if (match2) {
             return { key: match2[1], text: match2[2].trim() }
           }
+          // 如果没有匹配到标准格式，返回原选项
           return { key: option, text: option }
         })
         .filter(option => option.text && option.text.trim() !== '')
     },
+
     async editExam(exam) {
-      console.log('编辑考试（假数据）')
-      this.editForm = {
-        examId: exam.examId,
-        examName: exam.examName,
-        courseId: exam.courseId,
-        examTime: [exam.startTime, exam.endTime],
-        questions: [
-          {
-            questionType: 'SINGLE_CHOICE',
-            questionContent: 'Vue.js是什么？',
-            options: 'A. 前端框架\nB. 后端框架\nC. 数据库\nD. 操作系统',
-            correctAnswer: 'A',
-            explanation: 'Vue.js是一个流行的前端JavaScript框架',
-            score: 10,
-            difficulty: 'MEDIUM'
+      try {
+        // 获取考试详情和题目
+        const response = await getExamDetail(exam.examId)
+        const res = response.data
+        if (res && res.code === 200 && res.data) {
+          const examDetail = res.data
+
+          // 处理题目数据，转换答案格式
+          const processedQuestions = (examDetail.questions || []).map(question => {
+            const processedQuestion = { ...question };
+
+            // 处理多选题答案格式
+            if (question.questionType === 'MULTIPLE_CHOICE' && question.correctAnswer) {
+              if (typeof question.correctAnswer === 'string') {
+                processedQuestion.correctAnswer = question.correctAnswer
+                  .split(',')
+                  .map(item => item.trim())
+                  .filter(item => item.length > 0);
+              }
+            }
+
+            // 处理判断题答案格式
+            if (question.questionType === 'JUDGE' && question.correctAnswer) {
+              if (typeof question.correctAnswer === 'string') {
+                processedQuestion.correctAnswer = question.correctAnswer.toLowerCase();
+              }
+            }
+
+            // 处理单选题答案格式
+            if (question.questionType === 'SINGLE_CHOICE' && question.correctAnswer) {
+              if (typeof question.correctAnswer === 'string' && question.correctAnswer.includes(',')) {
+                processedQuestion.correctAnswer = question.correctAnswer.split(',')[0].trim();
+              }
+            }
+
+            return processedQuestion;
+          });
+
+          this.editForm = {
+            examId: exam.examId,
+            examName: exam.examName,
+            courseId: exam.courseId,
+            examTime: [exam.startTime, exam.endTime],
+            questions: processedQuestions
           }
-        ]
+
+          this.showEditDialog = true
+        } else {
+          this.$message.error('获取考试详情失败')
+        }
+      } catch (error) {
+        this.$message.error('获取考试详情失败')
+        console.error(error)
       }
-      this.showEditDialog = true
     },
+
     onEditDialogOpen() {
-      console.log('编辑对话框打开（假数据）')
+      this.getCourseList()
     },
+
     addEditQuestion() {
       this.editForm.questions.push({
         questionType: 'SINGLE_CHOICE',
@@ -1091,9 +1270,11 @@ export default {
         difficulty: 'MEDIUM'
       })
     },
+
     removeEditQuestion(index) {
       this.editForm.questions.splice(index, 1)
     },
+
     onEditQuestionTypeChange(question) {
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.correctAnswer = []
@@ -1101,29 +1282,53 @@ export default {
         question.correctAnswer = ''
       }
     },
+
     async importEditCourseQuestions() {
       if (!this.editForm.courseId) {
         this.$message.warning('请先选择课程');
         return;
       }
-      console.log('导入编辑课程题目（假数据）')
-      const processedQuestions = [
-        {
-          questionType: 'SINGLE_CHOICE',
-          questionContent: 'Vue.js是什么？',
-          options: 'A. 前端框架\nB. 后端框架\nC. 数据库\nD. 操作系统',
-          correctAnswer: 'A',
-          explanation: 'Vue.js是一个流行的前端JavaScript框架',
-          score: 10,
-          difficulty: 'MEDIUM'
-        }
-      ];
-      this.editForm.questions = this.editForm.questions.concat(processedQuestions);
-      this.$message.success(`已导入${processedQuestions.length}道题目（假数据）`);
+      const response = await getCourseQuestions(this.editForm.courseId);
+      const res = response.data;
+      if (res.code === 200 && Array.isArray(res.data)) {
+        const processedQuestions = res.data.map(question => {
+          const processedQuestion = { ...question };
+
+          if (question.questionType === 'MULTIPLE_CHOICE' && question.correctAnswer) {
+            if (typeof question.correctAnswer === 'string') {
+              processedQuestion.correctAnswer = question.correctAnswer
+                .split(',')
+                .map(item => item.trim())
+                .filter(item => item.length > 0);
+            }
+          }
+
+          if (question.questionType === 'JUDGE' && question.correctAnswer) {
+            if (typeof question.correctAnswer === 'string') {
+              processedQuestion.correctAnswer = question.correctAnswer.toLowerCase();
+            }
+          }
+
+          if (question.questionType === 'SINGLE_CHOICE' && question.correctAnswer) {
+            if (typeof question.correctAnswer === 'string' && question.correctAnswer.includes(',')) {
+              processedQuestion.correctAnswer = question.correctAnswer.split(',')[0].trim();
+            }
+          }
+
+          return processedQuestion;
+        });
+
+        this.editForm.questions = this.editForm.questions.concat(processedQuestions);
+        this.$message.success(`已导入${processedQuestions.length}道题目`);
+      } else {
+        this.$message.warning(res?.msg || '题库暂无可导入题目');
+      }
     },
+
     clearEditQuestions() {
       this.editForm.questions = []
     },
+
     async updateExam() {
       this.$refs.editFormRef.validate(async (valid) => {
         if (!valid) return
@@ -1131,8 +1336,11 @@ export default {
           this.$message.warning('请至少添加一道题目')
           return
         }
+
+        // 验证和格式化答案
         for (let i = 0; i < this.editForm.questions.length; i++) {
           const question = this.editForm.questions[i]
+
           if (question.questionType === 'MULTIPLE_CHOICE') {
             if (!Array.isArray(question.correctAnswer) || question.correctAnswer.length === 0) {
               this.$message.error(`第${i + 1}题（多选题）请选择正确答案`)
@@ -1146,45 +1354,50 @@ export default {
             }
           }
         }
+
         this.updating = true
         try {
-          console.log('更新考试（假数据）')
-          setTimeout(() => {
-            this.$message.success('考试更新成功（假数据）')
+          const examData = {
+            examName: this.editForm.examName,
+            startTime: this.editForm.examTime[0],
+            endTime: this.editForm.examTime[1],
+            questions: this.editForm.questions
+          }
+
+          const res = await updateExam(this.editForm.examId, examData)
+          const result = res && res.data ? res.data : res
+          if (result.code === 200) {
+            this.$message.success('考试更新成功')
             this.showEditDialog = false
-            this.resetEditForm()
             this.loadExamList()
-            this.updating = false
-          }, 1000)
+          } else {
+            this.$message.error(result.msg || '更新考试失败')
+          }
         } catch (error) {
           this.$message.error('更新考试失败')
           console.error('更新考试错误:', error)
+        } finally {
           this.updating = false
         }
       })
     },
-    resetEditForm() {
-      this.editForm = {
-        examId: null,
-        examName: '',
-        courseId: '',
-        examTime: [],
-        questions: []
-      }
-      this.$refs.editFormRef.resetFields()
-    },
+
     async deleteExam(exam) {
       try {
-        await this.$confirm('确定要删除这个考试吗？删除后无法恢复', '提示', {
-          confirmButtonText: '确定',
+        await this.$confirm('确定要删除这个考试吗？删除后无法恢复！', '确认删除', {
+          confirmButtonText: '确定删除',
           cancelButtonText: '取消',
           type: 'warning'
         })
-        console.log('删除考试（假数据）')
-        setTimeout(() => {
-          this.examList = this.examList.filter(item => item.examId !== exam.examId)
-          this.$message.success('考试删除成功（假数据）')
-        }, 500)
+
+        const response = await deleteExam(exam.examId)
+        const res = response.data
+        if (res && res.code === 200) {
+          this.$message.success('考试删除成功')
+          this.loadExamList()
+        } else {
+          this.$message.error(res?.msg || '删除考试失败')
+        }
       } catch (error) {
         if (error !== 'cancel') {
           this.$message.error('删除考试失败')
@@ -1192,42 +1405,38 @@ export default {
         }
       }
     },
+
     getPublishDisabledReason(status) {
-      switch (status) {
-        case 'ONGOING':
-          return '考试进行中，无法推送'
-        case 'FINISHED':
-          return '考试已结束，无法推送'
-        default:
-          return '无法推送'
+      const reasons = {
+        'ONGOING': '考试进行中，无法推送',
+        'FINISHED': '考试已结束，无法推送'
       }
+      return reasons[status] || '未知状态'
     },
+
     getEditDisabledReason(status) {
-      switch (status) {
-        case 'ONGOING':
-          return '考试进行中，无法编辑'
-        case 'FINISHED':
-          return '考试已结束，无法编辑'
-        default:
-          return '无法编辑'
+      const reasons = {
+        'ONGOING': '考试进行中，无法编辑',
+        'FINISHED': '考试已结束，无法编辑'
       }
+      return reasons[status] || '未知状态'
     },
+
     getDeleteDisabledReason(status) {
-      switch (status) {
-        case 'ONGOING':
-          return '考试进行中，无法删除'
-        case 'FINISHED':
-          return '考试已结束，无法删除'
-        default:
-          return '无法删除'
+      const reasons = {
+        'ONGOING': '考试进行中，无法删除',
+        'FINISHED': '考试已结束，无法删除'
       }
+      return reasons[status] || '未知状态'
     },
+
     checkMobile() {
-      this.isMobile = window.innerWidth < 768
+      this.isMobile = window.innerWidth < 700
     }
   }
 }
 </script>
+
 <style scoped>
 .exam-management {
   padding: 20px;
@@ -1236,6 +1445,7 @@ export default {
   max-width: 1600px;
   margin: 0 auto;
 }
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -1246,28 +1456,34 @@ export default {
   border-radius: 16px;
   box-shadow: 0 4px 16px #f0c1d6cc;
 }
+
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .title-section {
   margin-right: 20px;
 }
+
 .title-section h2 {
   margin: 0 0 8px 0;
   color: #ff5c8a;
   font-size: 28px;
   font-weight: bold;
 }
+
 .title-section p {
   color: #666;
   font-size: 16px;
 }
+
 .header-actions {
   display: flex;
   align-items: center;
 }
+
 .back-btn,
 .create-btn {
   background: #ffb6d5 !important;
@@ -1278,15 +1494,18 @@ export default {
   padding: 10px 20px;
   margin-left: 10px;
 }
+
 .back-btn:hover,
 .create-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .back-btn i,
 .create-btn i {
   margin-right: 5px;
 }
+
 .exam-list {
   background: #fff;
   border-radius: 16px;
@@ -1296,96 +1515,121 @@ export default {
   overflow: hidden;
   width: 100%;
 }
+
 .exam-list ::v-deep .el-table {
   border-radius: 12px;
   overflow: hidden;
   width: 100% !important;
 }
+
 .exam-list ::v-deep .el-table__body-wrapper {
   overflow-x: auto;
 }
+
 .exam-list ::v-deep .el-table__header-wrapper {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
 }
+
 .exam-list ::v-deep .el-table__header th {
   background: transparent;
   color: #ff5c8a;
   font-weight: bold;
   border-bottom: 2px solid #ffb6d5;
 }
+
 .exam-list ::v-deep .el-table__body tr:hover > td {
   background: #fff5f8;
 }
+
 .exam-list ::v-deep .el-table__body td {
   border-bottom: 1px solid #ffe4ec;
 }
+
 .exam-list ::v-deep .el-button--mini {
   border-radius: 8px;
   font-weight: bold;
 }
+
 .exam-list ::v-deep .el-button--primary {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
   color: #fff !important;
 }
+
 .exam-list ::v-deep .el-button--primary:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .exam-list ::v-deep .el-button--success {
   background: #67c23a !important;
   border-color: #67c23a !important;
   color: #fff !important;
 }
+
 .exam-list ::v-deep .el-button--success:hover {
   background: #85ce61 !important;
   border-color: #85ce61 !important;
 }
+
 .exam-list ::v-deep .el-button--warning {
   background: #e6a23c !important;
   border-color: #e6a23c !important;
   color: #fff !important;
 }
+
 .exam-list ::v-deep .el-button--warning:hover {
   background: #ebb563 !important;
   border-color: #ebb563 !important;
 }
+
 .exam-list ::v-deep .el-button--danger {
   background: #f56c6c !important;
   border-color: #f56c6c !important;
   color: #fff !important;
 }
+
 .exam-list ::v-deep .el-button--danger:hover {
   background: #f78989 !important;
   border-color: #f78989 !important;
 }
+
+/* 禁用按钮样式优化 */
 .exam-list ::v-deep .el-button.is-disabled {
   cursor: help !important;
   opacity: 0.6;
 }
+
 .exam-list ::v-deep .el-button.is-disabled:hover {
   opacity: 0.8;
 }
+
 .exam-list ::v-deep .el-table__body .el-button + .el-button {
   margin-left: 8px;
 }
+
+/* 操作按钮响应式优化 */
 @media (min-width: 1200px) {
   .exam-list ::v-deep .el-table__body .el-button + .el-button {
     margin-left: 4px;
   }
+
   .exam-list ::v-deep .el-button--mini {
     padding: 5px 8px;
     font-size: 12px;
   }
 }
+
 @media (max-width: 1199px) and (min-width: 768px) {
   .exam-list ::v-deep .el-table__body .el-button + .el-button {
     margin-left: 6px;
   }
 }
+
 .questions-section {
   margin-top: 20px;
 }
+
 .questions-header {
   display: flex;
   justify-content: space-between;
@@ -1394,32 +1638,38 @@ export default {
   flex-wrap: wrap;
   gap: 10px;
 }
+
 .questions-header h3 {
   margin: 0;
   color: #ff5c8a;
   font-size: 20px;
   font-weight: bold;
 }
+
 .questions-info {
   display: flex;
   gap: 20px;
   align-items: center;
 }
+
 .total-score {
   color: #67c23a;
   font-weight: bold;
   font-size: 16px;
 }
+
 .question-count {
   color: #409eff;
   font-weight: bold;
   font-size: 16px;
 }
+
 .questions-actions {
   display: flex;
   gap: 10px;
   align-items: center;
 }
+
 .questions-header .el-button {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -1428,10 +1678,12 @@ export default {
   border-radius: 12px;
   padding: 8px 16px;
 }
+
 .questions-header .el-button:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .question-item {
   border: 1px solid #ffe4ec;
   border-radius: 12px;
@@ -1440,6 +1692,7 @@ export default {
   background: #fff;
   box-shadow: 0 2px 8px #f0c1d6cc;
 }
+
 .question-header {
   display: flex;
   justify-content: space-between;
@@ -1448,11 +1701,13 @@ export default {
   font-weight: bold;
   color: #ff5c8a;
 }
+
 .question-score-display {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .score-text {
   color: #f56c6c;
   font-weight: bold;
@@ -1462,19 +1717,23 @@ export default {
   border-radius: 6px;
   border: 1px solid #fbc4c4;
 }
+
 .question-header .el-button {
   border-radius: 8px;
   font-weight: bold;
 }
+
 .exam-info p {
   margin: 10px 0;
   color: #666;
 }
+
 .questions-list h3 {
   margin: 20px 0 15px 0;
   color: #ff5c8a;
   font-weight: bold;
 }
+
 .question-detail {
   border: 1px solid #ffe4ec;
   border-radius: 12px;
@@ -1483,71 +1742,88 @@ export default {
   background: #fff;
   box-shadow: 0 2px 8px #f0c1d6cc;
 }
+
 .question-title {
   margin-bottom: 10px;
   font-weight: bold;
 }
+
 .question-number {
   color: #ff5c8a;
   margin-right: 5px;
 }
+
 .question-type {
   color: #909399;
   margin-right: 5px;
 }
+
 .question-score {
   color: #f56c6c;
   margin-left: 5px;
 }
+
 .question-options {
   margin: 10px 0;
   padding-left: 20px;
 }
+
 .option {
   margin: 5px 0;
   color: #666;
 }
+
 .question-answer {
   margin-top: 10px;
   color: #67c23a;
   font-weight: bold;
 }
+
 .question-explanation {
   margin-top: 10px;
   color: #909399;
   font-size: 14px;
 }
+
 .statistics-info {
   text-align: center;
 }
+
 .stat-item {
   padding: 20px;
   background: #f5f7fa;
   border-radius: 12px;
   box-shadow: 0 2px 8px #f0c1d6cc;
 }
+
 .stat-number {
   font-size: 24px;
   font-weight: bold;
   color: #ff5c8a;
   margin-bottom: 5px;
 }
+
 .stat-label {
   color: #666;
   font-size: 14px;
 }
+
+/* 对话框样式 */
 ::v-deep .el-dialog__header {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
   color: #ff5c8a;
   font-weight: bold;
 }
+
 ::v-deep .el-dialog__title {
   color: #ff5c8a;
   font-weight: bold;
 }
+
 ::v-deep .el-dialog__footer {
   border-top: 1px solid #ffe4ec;
 }
+
 ::v-deep .el-dialog__footer .el-button--primary {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -1556,127 +1832,165 @@ export default {
   border-radius: 12px;
   padding: 10px 20px;
 }
+
 ::v-deep .el-dialog__footer .el-button--primary:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
+/* 表单样式 */
 ::v-deep .el-form-item__label {
   color: #ff5c8a;
   font-weight: bold;
 }
+
 ::v-deep .el-input__inner,
 ::v-deep .el-textarea__inner {
   border-color: #ffe4ec;
   border-radius: 8px;
 }
+
 ::v-deep .el-input__inner:focus,
 ::v-deep .el-textarea__inner:focus {
   border-color: #ffb6d5;
 }
+
 ::v-deep .el-select .el-input__inner {
   border-color: #ffe4ec;
   border-radius: 8px;
 }
+
 ::v-deep .el-select .el-input__inner:focus {
   border-color: #ffb6d5;
 }
+
 ::v-deep .el-date-editor {
   border-color: #ffe4ec;
   border-radius: 8px;
 }
+
 ::v-deep .el-date-editor:focus {
   border-color: #ffb6d5;
 }
+
+/* 响应式设计 */
 @media (max-width: 768px) {
   .exam-management {
     padding: 10px;
   }
+
   .header {
     padding: 15px;
   }
+
   .header-content {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
+
   .title-section {
     margin-right: 0;
   }
+
   .title-section h2 {
     font-size: 24px;
   }
+
   .header-actions {
     flex-direction: column;
     gap: 10px;
   }
+
   .back-btn,
   .create-btn {
     width: 100%;
     margin-left: 0;
   }
+
   .exam-list {
     border-radius: 12px;
     padding: 10px;
     overflow-x: auto;
   }
+
+  /* 移动端卡片优化 */
   .exam-cards {
     gap: 12px;
   }
+
   .exam-card {
     padding: 12px;
     border-radius: 12px;
   }
+
   .exam-card-header {
     margin-bottom: 10px;
     gap: 8px;
   }
+
   .exam-title {
     font-size: 16px;
   }
+
   .exam-info-row {
     margin-bottom: 6px;
   }
+
   .info-label {
     font-size: 13px;
     min-width: 45px;
   }
+
   .info-value {
     font-size: 13px;
   }
+
   .exam-card-actions {
     gap: 6px;
   }
+
   .action-btn {
     min-width: 50px;
     max-width: 70px;
     font-size: 11px;
     padding: 4px 6px;
   }
+
   .exam-list ::v-deep .el-table {
     font-size: 12px;
     min-width: 600px;
   }
+
   .exam-list ::v-deep .el-table th,
   .exam-list ::v-deep .el-table td {
     padding: 6px 4px;
     white-space: nowrap;
   }
+
+  /* 移动端操作按钮优化 */
   .exam-list ::v-deep .el-table__body .el-button + .el-button {
     margin-left: 2px;
     margin-top: 2px;
   }
+
   .exam-list ::v-deep .el-button--mini {
     padding: 3px 5px;
     font-size: 10px;
     min-width: auto;
   }
+  
+  /* 移动端表格滚动优化 */
   .exam-list ::v-deep .el-table__body-wrapper {
     overflow-x: auto;
   }
+  
+  /* 移动端固定列优化 */
   .exam-list ::v-deep .el-table__fixed-right {
     box-shadow: -2px 0 8px rgba(0,0,0,0.1);
   }
 }
+
 @media (max-width: 900px) {
   .el-dialog {
     min-width: unset !important;
@@ -1746,6 +2060,7 @@ export default {
     font-size: 18px;
   }
 }
+
 @media (max-width: 700px) {
   .statistics-info {
     padding: 0 2vw !important;
@@ -1763,59 +2078,78 @@ export default {
   .el-dialog {
     min-width: unset !important;
   }
+  
+  /* 手机端表格进一步优化 */
   .exam-list {
     padding: 5px;
   }
+  
   .exam-list ::v-deep .el-table {
     font-size: 11px;
     min-width: 500px;
   }
+  
   .exam-list ::v-deep .el-table th,
   .exam-list ::v-deep .el-table td {
     padding: 4px 2px;
   }
+  
   .exam-list ::v-deep .el-button--mini {
     padding: 2px 4px;
     font-size: 9px;
   }
+  
   .exam-list ::v-deep .el-table__body .el-button + .el-button {
     margin-left: 1px;
     margin-top: 1px;
   }
+  
+  /* 移动端考试时间样式 */
   .exam-time {
     font-size: 10px;
     line-height: 1.2;
   }
+  
   .exam-time div {
     margin-bottom: 2px;
   }
+  
+  /* 手机端卡片进一步优化 */
   .exam-cards {
     gap: 8px;
   }
+  
   .exam-card {
     padding: 10px;
     border-radius: 10px;
   }
+  
   .exam-card-header {
     margin-bottom: 8px;
     gap: 6px;
   }
+  
   .exam-title {
     font-size: 15px;
   }
+  
   .exam-info-row {
     margin-bottom: 4px;
   }
+  
   .info-label {
     font-size: 12px;
     min-width: 40px;
   }
+  
   .info-value {
     font-size: 12px;
   }
+  
   .exam-card-actions {
     gap: 4px;
   }
+  
   .action-btn {
     min-width: 45px;
     max-width: 65px;
@@ -1823,23 +2157,30 @@ export default {
     padding: 3px 5px;
   }
 }
+
+/* 考试时间样式 */
 .exam-time {
   font-size: 12px;
   line-height: 1.3;
 }
+
 .exam-time div:first-child {
   color: #409eff;
   font-weight: bold;
 }
+
 .exam-time div:last-child {
   color: #f56c6c;
   font-weight: bold;
 }
+
+/* 移动端卡片样式 */
 .exam-cards {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .exam-card {
   background: #fff;
   border-radius: 16px;
@@ -1848,10 +2189,12 @@ export default {
   border: 1px solid #ffe4ec;
   transition: all 0.3s ease;
 }
+
 .exam-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px #f0c1d6cc;
 }
+
 .exam-card-header {
   display: flex;
   justify-content: space-between;
@@ -1859,6 +2202,7 @@ export default {
   margin-bottom: 12px;
   gap: 12px;
 }
+
 .exam-title {
   font-size: 18px;
   font-weight: bold;
@@ -1866,40 +2210,49 @@ export default {
   line-height: 1.3;
   flex: 1;
 }
+
 .exam-status {
   flex-shrink: 0;
 }
+
 .exam-card-content {
   margin-bottom: 16px;
 }
+
 .exam-info-row {
   display: flex;
   margin-bottom: 8px;
   align-items: center;
 }
+
 .info-label {
   color: #666;
   font-size: 14px;
   min-width: 50px;
   flex-shrink: 0;
 }
+
 .info-value {
   color: #333;
   font-size: 14px;
   font-weight: 500;
 }
+
 .start-time {
   color: #409eff;
 }
+
 .end-time {
   color: #f56c6c;
 }
+
 .exam-card-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-start;
 }
+
 .action-btn {
   flex: 1;
   min-width: 60px;

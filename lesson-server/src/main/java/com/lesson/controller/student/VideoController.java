@@ -2,9 +2,9 @@ package com.lesson.controller.student;
 
 import com.lesson.entity.Chapter;
 import com.lesson.mapper.ChapterMapper;
+import com.lesson.service.UserService;
 import com.lesson.result.Result;
 import com.lesson.service.StorageService;
-import com.lesson.service.UserService;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

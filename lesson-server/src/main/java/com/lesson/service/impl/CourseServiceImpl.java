@@ -328,7 +328,7 @@ public class CourseServiceImpl implements CourseService {
     public boolean favoriteCourse(Integer courseId) {
         // 获取当前用户ID
         Integer currentId = getCurrentId();
-        // currentId = 4;//TODO先手动加上去
+       // currentId = 4;//TODO先手动加上去
         // 构建查询条件
         LambdaQueryWrapper<Favorite> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Favorite::getUserId, currentId).eq(Favorite::getCourseId, courseId);
@@ -468,43 +468,43 @@ public class CourseServiceImpl implements CourseService {
         if (course == null) {
             throw new RuntimeException("课程不存在");
         }
-
+        
         // 2. 检查是否是当前教师的课程
         Integer currentTeacherId = getCurrentId();
         if (!course.getTeacherId().equals(currentTeacherId)) {
             throw new RuntimeException("只能删除自己的课程");
         }
-
+        
         // 3. 检查是否有用户购买过这个课程
         LambdaQueryWrapper<Order> orderWrapper = new LambdaQueryWrapper<>();
         orderWrapper.eq(Order::getCourseId, courseId)
-                .eq(Order::getOrderStatus, "PAID");
+                   .eq(Order::getOrderStatus, "PAID");
         Long purchaseCount = orderMapper.selectCount(orderWrapper);
-
+        
         if (purchaseCount > 0) {
             throw new RuntimeException("该课程已有用户购买，无法删除");
         }
-
+        
         // 4. 删除相关数据（按依赖关系顺序删除）
-
+        
         // 删除收藏记录（如果有的话）
         LambdaQueryWrapper<Favorite> favoriteWrapper = new LambdaQueryWrapper<>();
         favoriteWrapper.eq(Favorite::getCourseId, courseId);
         favoriteMapper.delete(favoriteWrapper);
-
+        
         // 删除课程章节（MyBatis Plus会自动处理外键约束）
         LambdaQueryWrapper<Chapter> chapterWrapper = new LambdaQueryWrapper<>();
         chapterWrapper.eq(Chapter::getCourseId, courseId);
         chapterMapper.delete(chapterWrapper);
-
+        
         // 删除课程本身
         int result = courseMapper.deleteById(courseId);
-
+        
         log.info("课程删除成功 - 课程ID: {}, 删除结果: {}", courseId, result > 0);
-
+        
         return result > 0;
     }
-
+    
     /*
      * 获取课程章节列表
      */
@@ -515,14 +515,14 @@ public class CourseServiceImpl implements CourseService {
         if (course == null) {
             throw new RuntimeException("课程不存在");
         }
-
+        
         // 查询章节列表，按orderNum排序
         LambdaQueryWrapper<Chapter> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Chapter::getCourseId, courseId)
-                .orderByAsc(Chapter::getOrderNum);
-
+                   .orderByAsc(Chapter::getOrderNum);
+        
         List<Chapter> chapters = chapterMapper.selectList(queryWrapper);
-
+        
         // 转换为VO
         return chapters.stream().map(chapter -> {
             ChapterVO vo = new ChapterVO();
@@ -531,7 +531,7 @@ public class CourseServiceImpl implements CourseService {
             return vo;
         }).collect(Collectors.toList());
     }
-
+    
     /*
      * 获取章节详情
      */
@@ -541,13 +541,13 @@ public class CourseServiceImpl implements CourseService {
         if (chapter == null) {
             throw new RuntimeException("章节不存在");
         }
-
+        
         ChapterVO vo = new ChapterVO();
         BeanUtils.copyProperties(chapter, vo);
         vo.setContentType(chapter.getContentType());
         return vo;
     }
-
+    
     /*
      * 更新章节
      */
@@ -559,31 +559,31 @@ public class CourseServiceImpl implements CourseService {
         if (existingChapter == null) {
             throw new RuntimeException("章节不存在");
         }
-
+        
         // 2. 检查课程是否存在
         Course course = courseMapper.selectById(updateChapterDTO.getCourseId());
         if (course == null) {
             throw new RuntimeException("课程不存在");
         }
-
+        
         // 3. 检查是否是当前教师的课程
         Integer currentTeacherId = getCurrentId();
         if (!course.getTeacherId().equals(currentTeacherId)) {
             throw new RuntimeException("只能修改自己课程的章节");
         }
-
+        
         // 4. 更新章节信息
         BeanUtils.copyProperties(updateChapterDTO, existingChapter);
         existingChapter.setContentType(updateChapterDTO.getContentType());
         // 新增：自动补全teacherId
         existingChapter.setTeacherId(course.getTeacherId());
         int result = chapterMapper.updateById(existingChapter);
-
+        
         log.info("章节更新成功 - 章节ID: {}, 更新结果: {}", updateChapterDTO.getChapterId(), result > 0);
-
+        
         return result > 0;
     }
-
+    
     /*
      * 删除章节
      */
@@ -595,34 +595,34 @@ public class CourseServiceImpl implements CourseService {
         if (chapter == null) {
             throw new ServiceException("章节不存在");
         }
-
+        
         // 2. 检查课程是否存在
         Course course = courseMapper.selectById(chapter.getCourseId());
         if (course == null) {
             throw new ServiceException("课程不存在");
         }
-
+        
         // 3. 检查是否是当前教师的课程
         Integer currentTeacherId = getCurrentId();
         if (!course.getTeacherId().equals(currentTeacherId)) {
             throw new ServiceException("只能删除自己课程的章节");
         }
-
+        
         // 4. 检查课程是否有用户购买
         LambdaQueryWrapper<Order> orderWrapper = new LambdaQueryWrapper<>();
         orderWrapper.eq(Order::getCourseId, chapter.getCourseId())
-                .eq(Order::getOrderStatus, "PAID");
+                   .eq(Order::getOrderStatus, "PAID");
         Long purchaseCount = orderMapper.selectCount(orderWrapper);
-
+        
         if (purchaseCount > 0) {
             throw new ServiceException("该课程已有用户购买，无法删除章节");
         }
-
+        
         // 5. 删除章节
         int result = chapterMapper.deleteById(chapterId);
-
+        
         log.info("章节删除成功 - 章节ID: {}, 删除结果: {}", chapterId, result > 0);
-
+        
         return result > 0;
     }
 
@@ -632,23 +632,23 @@ public class CourseServiceImpl implements CourseService {
                 .eq(Favorite::getCourseId, courseId)
                 .eq(Favorite::getUserId, userId));
         if (favorite != null && favorite.getIsCancel() == 0) {
-            return Result.success("已收藏");
+                    return Result.success("已收藏");
         } else {
-            return Result.success("未收藏");
-        }
+                    return Result.success("未收藏");
+                }
     }
 
     @Override
     public boolean updateCourseCategory(com.lesson.dto.UpdateCourseCategoryDTO dto) {
         Course course = courseMapper.selectById(dto.getCourseId());
         if (course == null) return false;
-
+        
         // 检查课程是否已审核通过
         if (!"APPROVED".equals(course.getAuditStatus())) {
             log.warn("课程未审核通过，无法修改分类 - 课程ID: {}, 审核状态: {}", dto.getCourseId(), course.getAuditStatus());
             return false;
         }
-
+        
         course.setCategoryId(dto.getCategoryId());
         courseMapper.updateById(course);
         return true;

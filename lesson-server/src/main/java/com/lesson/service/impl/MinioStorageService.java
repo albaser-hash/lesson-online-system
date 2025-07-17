@@ -2,13 +2,13 @@ package com.lesson.service.impl;
 
 import com.lesson.config.StorageProperties;
 import com.lesson.service.StorageService;
-import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.http.Method;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;

@@ -2,8 +2,8 @@ package com.lesson.service;
 
 import com.lesson.dto.PageQueryDTO;
 import com.lesson.result.PageResult;
-import com.lesson.vo.MyCourseVO;
 import com.lesson.vo.MyCoursesStatsVO;
+import com.lesson.vo.MyCourseVO;
 
 import java.util.List;
 

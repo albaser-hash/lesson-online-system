@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartException;
  * 全局异常处理器，处理项目中抛出的业务异常
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -25,7 +26,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler
     public Result exceptionHandler(BaseException ex){
-       // log.error("异常信息：{}", ex.getMessage());
+        log.error("异常信息：{}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
     
@@ -36,7 +37,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler
     public Result exceptionHandler(PermissionDeniedException ex){
-     //   log.error("权限异常：{}", ex.getMessage());
+        log.error("权限异常：{}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
     
@@ -63,7 +64,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler
     public Result exceptionHandler(MaxUploadSizeExceededException ex){
-       // log.error("文件上传大小超限：{}", ex.getMessage());
+        log.error("文件上传大小超限：{}", ex.getMessage());
         return Result.error("文件大小超过限制，最大支持2GB");
     }
     
@@ -74,7 +75,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler
     public Result exceptionHandler(MultipartException ex){
-      //  log.error("文件上传异常：{}", ex.getMessage());
+        log.error("文件上传异常：{}", ex.getMessage());
         return Result.error("文件上传失败：" + ex.getMessage());
     }
 }

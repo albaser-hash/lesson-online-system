@@ -6,6 +6,8 @@ import com.lesson.entity.Order;
 import com.lesson.vo.OrderVO;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 public interface OrderMapper extends BaseMapper<Order> {
     
     // 查询用户的订单列表（包含课程详情）

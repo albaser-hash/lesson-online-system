@@ -6,6 +6,7 @@ import com.lesson.entity.QaQuestion;
 import com.lesson.vo.QaQuestionDetailVO;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import java.util.List;
 
 public interface QaQuestionMapper extends BaseMapper<QaQuestion> {
     @Select("SELECT q.*, COALESCE(NULLIF(u.name, ''), u.user_name) as user_name, u.avatar, COUNT(a.answer_id) AS answerCount, q.best_answer_id as bestAnswerId " +

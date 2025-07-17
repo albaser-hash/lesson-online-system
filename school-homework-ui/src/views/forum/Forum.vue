@@ -1,26 +1,23 @@
 <template>
   <div class="forum-page">
-    <!-- 通用导航栏 -->
-    <CommonNav activeIndex="forum" />
-    
-    <div class="page-content">
-      <div class="page-header">
-        <div class="header-content">
-          <div class="title-section">
-            <h2>论坛社区</h2>
-            <p>交流与分享你的想法</p>
-          </div>
-          <div class="header-actions">
-            <el-button type="primary" icon="el-icon-edit" @click="handleNewTopic" class="new-topic-btn">
-              发表新主题
-            </el-button>
-            <el-button @click="goHome" class="back-btn">
-              <i class="el-icon-back"></i>
-              返回主页
-            </el-button>
-          </div>
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h2>论坛社区</h2>
+          <p>交流与分享你的想法</p>
+        </div>
+        <div class="header-actions">
+          <el-button type="primary" icon="el-icon-edit" @click="handleNewTopic" class="new-topic-btn">
+            发表新主题
+          </el-button>
+          <el-button @click="goHome" class="back-btn">
+            <i class="el-icon-back"></i>
+            返回主页
+          </el-button>
         </div>
       </div>
+    </div>
+
     <el-card class="forum-card">
       <el-table :data="topics" style="width: 100%; margin-top: 0;" class="forum-table" @row-click="viewDetail">
         <el-table-column label="主题" min-width="400">
@@ -63,11 +60,12 @@
           </template>
         </el-table-column>
       </el-table>
+
       <div class="pagination-container">
         <div class="pagination-wrapper">
           <div class="pagination-info">
-            <span class="total-info">共{{ total }}条</span>
-            <span class="page-info">第{{ listQuery.page }} / {{ Math.ceil(total / listQuery.pageSize) }}页</span>
+            <span class="total-info">共 {{ total }} 条</span>
+            <span class="page-info">第 {{ listQuery.page }} / {{ Math.ceil(total / listQuery.pageSize) }} 页</span>
           </div>
           <div class="pagination-controls">
             <el-button 
@@ -79,6 +77,7 @@
               <i class="el-icon-arrow-left"></i>
               上一页
             </el-button>
+            
             <div class="page-numbers" v-if="!isMobile">
               <el-button 
                 v-for="page in visiblePages" 
@@ -90,6 +89,7 @@
                 {{ page }}
               </el-button>
             </div>
+            
             <div class="page-numbers mobile" v-else>
               <el-button 
                 v-for="page in mobileVisiblePages" 
@@ -101,6 +101,7 @@
                 {{ page }}
               </el-button>
             </div>
+            
             <el-button 
               :disabled="listQuery.page >= Math.ceil(total / listQuery.pageSize)" 
               @click="handlePageChange(listQuery.page + 1)"
@@ -110,6 +111,7 @@
               下一页
               <i class="el-icon-arrow-right"></i>
             </el-button>
+            
             <!-- PC端跳转功能 -->
             <div class="jump-to-page" v-if="!isMobile">
               <span class="jump-text">跳转到</span>
@@ -133,6 +135,7 @@
         </div>
       </div>
     </el-card>
+
     <el-dialog title="发表新主题" :visible.sync="dialogVisible" width="90%" class="forum-dialog">
       <el-form :model="newTopicForm" ref="topicForm" label-width="80px">
         <el-form-item label="标题" prop="topicTitle" required>
@@ -153,10 +156,11 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitNewTopic" class="submit-btn">发布</el-button>
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="submitNewTopic" class="submit-btn">发 布</el-button>
       </span>
     </el-dialog>
+
     <el-dialog title="编辑主题" :visible.sync="editDialogVisible" width="90%" class="forum-dialog">
       <el-form :model="editTopicForm" ref="editTopicForm" label-width="80px">
         <el-form-item label="标题" prop="topicTitle" required>
@@ -177,22 +181,20 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitEditTopic" class="submit-btn">保存</el-button>
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="submitEditTopic" class="submit-btn">保 存</el-button>
       </span>
     </el-dialog>
-    </div>
   </div>
 </template>
+
 <script>
+import { listForumTopics, publishTopic, deleteTopic, updateTopic } from '@/api/forum'
+import { listCourseCategories } from '@/api/courseCategories'
 import { mapState } from 'vuex'
-import CommonNav from '@/components/CommonNav.vue'
 
 export default {
   name: 'Forum',
-  components: {
-    CommonNav
-  },
   data() {
     return {
       topics: [],
@@ -228,6 +230,7 @@ export default {
       const totalPages = Math.ceil(this.total / this.listQuery.pageSize)
       const currentPage = this.listQuery.page
       const pages = []
+      
       if (totalPages <= 10) {
         for (let i = 1; i <= totalPages; i++) {
           pages.push(i)
@@ -255,12 +258,14 @@ export default {
           pages.push(totalPages)
         }
       }
+      
       return pages
     },
     mobileVisiblePages() {
       const totalPages = Math.ceil(this.total / this.listQuery.pageSize)
       const currentPage = this.listQuery.page
       const pages = []
+      
       if (totalPages <= 3) {
         for (let i = 1; i <= totalPages; i++) {
           pages.push(i)
@@ -280,6 +285,7 @@ export default {
           pages.push(currentPage + 1)
         }
       }
+      
       return pages
     }
   },
@@ -345,6 +351,7 @@ export default {
           this.$message.error('删除失败，请重试')
         })
       }).catch(() => {
+        // 用户取消删除
       })
     },
     handleEditTopic(row) {
@@ -405,7 +412,7 @@ export default {
       })
     },
     getAvatarUrl(avatar) {
-      if (!avatar || (!/^https?:\/\//.test(avatar))) {
+      if (!avatar || (!/^https?:\/\//.test(avatar) && !avatar.startsWith('/'))) {
         return require('@/assets/images/profile.jpg')
       }
       return avatar
@@ -427,20 +434,18 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .forum-page {
+  padding: 20px;
   min-height: 100vh;
   background: linear-gradient(135deg, #ffe4ec 0%, #ffd6e6 100%);
 }
 
-.page-content {
-  padding: 80px 20px 20px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
 .page-header {
   margin-bottom: 20px;
 }
+
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -450,21 +455,25 @@ export default {
   border-radius: 16px;
   box-shadow: 0 4px 16px #f0c1d6cc;
 }
+
 .title-section h2 {
   margin: 0 0 8px 0;
   color: #ff5c8a;
   font-size: 28px;
   font-weight: bold;
 }
+
 .title-section p {
   margin: 0;
   color: #888;
   font-size: 14px;
 }
+
 .header-actions {
   display: flex;
   align-items: center;
 }
+
 .new-topic-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -476,10 +485,12 @@ export default {
   align-items: center;
   margin-right: 10px;
 }
+
 .new-topic-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .back-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -490,13 +501,16 @@ export default {
   display: flex;
   align-items: center;
 }
+
 .back-btn i {
   margin-right: 5px;
 }
+
 .back-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .forum-card {
   background: #fff;
   border-radius: 16px;
@@ -504,30 +518,37 @@ export default {
   border: none;
   overflow: hidden;
 }
+
 .forum-table {
   border-radius: 12px;
   overflow: hidden;
 }
+
 .forum-table ::v-deep .el-table__header-wrapper {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
 }
+
 .forum-table ::v-deep .el-table__header th {
   background: transparent;
   color: #ff5c8a;
   font-weight: bold;
   border-bottom: 2px solid #ffb6d5;
 }
+
 .forum-table ::v-deep .el-table__body tr:hover > td {
   background: #fff5f8;
 }
+
 .forum-table ::v-deep .el-table__body td {
   border-bottom: 1px solid #ffe4ec;
 }
+
 .forum-list-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .forum-list-avatar {
   width: 32px;
   height: 32px;
@@ -536,15 +557,18 @@ export default {
   object-fit: cover;
   background: #fff;
 }
+
 .forum-list-username {
   color: #ff5c8a;
   font-weight: bold;
   font-size: 14px;
 }
+
 .topic-title {
   font-weight: bold;
   margin-left: 8px;
 }
+
 .edit-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -553,18 +577,22 @@ export default {
   border-radius: 8px;
   margin-right: 8px;
 }
+
 .edit-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .delete-btn {
   border-radius: 8px;
   font-weight: bold;
 }
+
 .pagination-container {
   margin-top: 20px;
   padding: 20px 0;
 }
+
 .pagination-wrapper {
   display: flex;
   justify-content: space-between;
@@ -575,33 +603,40 @@ export default {
   box-shadow: 0 2px 8px rgba(255, 182, 213, 0.1);
   border: 1px solid #ffe4ec;
 }
+
 .pagination-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .total-info {
   font-size: 14px;
   color: #666;
   font-weight: 500;
 }
+
 .page-info {
   font-size: 12px;
   color: #999;
 }
+
 .pagination-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .page-numbers {
   display: flex;
   align-items: center;
   gap: 4px;
 }
+
 .page-numbers.mobile {
   gap: 2px;
 }
+
 .page-btn {
   min-width: 36px;
   height: 36px;
@@ -615,41 +650,49 @@ export default {
   align-items: center;
   justify-content: center;
 }
+
 .page-btn:hover {
   border-color: #ffb6d5;
   color: #ff5c8a;
   background: #fff5f8;
 }
+
 .page-btn.active {
   background: linear-gradient(135deg, #ffb6d5, #ff5c8a);
   border-color: #ff5c8a;
   color: #fff;
   box-shadow: 0 2px 8px rgba(255, 182, 213, 0.3);
 }
+
 .page-btn:disabled {
   background: #f5f7fa;
   border-color: #e4e7ed;
   color: #c0c4cc;
   cursor: not-allowed;
 }
+
 .page-btn:disabled:hover {
   background: #f5f7fa;
   border-color: #e4e7ed;
   color: #c0c4cc;
 }
+
 .prev-btn, .next-btn {
   padding: 0 12px;
   min-width: 80px;
   font-size: 13px;
 }
+
 .prev-btn i, .next-btn i {
   margin: 0 4px;
 }
+
 .forum-dialog ::v-deep .el-dialog__header {
   background: linear-gradient(90deg, #ffe4ec 0%, #ffd6e6 100%);
   color: #ff5c8a;
   font-weight: bold;
 }
+
 .submit-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -658,27 +701,33 @@ export default {
   border-radius: 12px;
   padding: 10px 20px;
 }
+
 .submit-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 .forum-dialog ::v-deep .el-select {
   width: 100%;
 }
+
 .jump-to-page {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-left: 16px;
 }
+
 .jump-text {
   font-size: 12px;
   color: #666;
   white-space: nowrap;
 }
+
 .jump-input {
   width: 60px;
 }
+
 .jump-input ::v-deep .el-input__inner {
   text-align: center;
   padding: 0 8px;
@@ -688,6 +737,7 @@ export default {
   border-radius: 8px;
   border: 1px solid #e4e7ed;
 }
+
 .jump-btn {
   background: #ffb6d5 !important;
   border-color: #ffb6d5 !important;
@@ -700,10 +750,12 @@ export default {
   line-height: 36px;
   min-width: 50px;
 }
+
 .jump-btn:hover {
   background: #ff5c8a !important;
   border-color: #ff5c8a !important;
 }
+
 @media (max-width: 768px) {
   .forum-page {
     padding: 10px;
@@ -771,18 +823,22 @@ export default {
     gap: 16px;
     padding: 12px 16px;
   }
+  
   .pagination-info {
     text-align: center;
   }
+  
   .pagination-controls {
     width: 100%;
     justify-content: center;
   }
+  
   .page-btn {
     min-width: 32px;
     height: 32px;
     font-size: 12px;
   }
+  
   .prev-btn, .next-btn {
     min-width: 70px;
     font-size: 12px;

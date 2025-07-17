@@ -2,6 +2,7 @@ package com.lesson.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lesson.entity.Chapter;
+import com.lesson.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

@@ -2,6 +2,7 @@ package com.lesson.vo;
 
 import com.lesson.entity.Course;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
