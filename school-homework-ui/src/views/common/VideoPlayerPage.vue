@@ -43,7 +43,8 @@ export default {
       videoUrl: '',
       title: '',
       chapterId: '',
-      courseId: ''
+      courseId: '',
+      isSeekingBlocked: false // 新增标志
     }
   },
   created() {
@@ -84,10 +85,19 @@ export default {
       const idx = Math.floor(e.target.currentTime / this.interval)
       const maxIdx = this.watched.lastIndexOf(true)
       if (idx > maxIdx + 1) {
+        if (this.isSeekingBlocked) return
+        this.isSeekingBlocked = true
+        // 强制回退到允许的最大区块
+        const video = this.$refs.video
+        if (video) {
+          video.currentTime = (maxIdx + 1) * this.interval
+        }
         this.$confirm('请按顺序观看，不能跳过！', '提示', {
           confirmButtonText: '知道了',
           showCancelButton: false,
           type: 'warning'
+        }).finally(() => {
+          this.isSeekingBlocked = false
         })
       }
     },
